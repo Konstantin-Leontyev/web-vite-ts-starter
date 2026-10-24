@@ -1,0 +1,373 @@
+/**
+ * Файл: `src/ui/button/button.styles.ts`
+ * Определяет внешний вид компонента Button.
+ *
+ * Основные задачи:
+ * 1. Типизировать пропсы через `ButtonStyleProps`
+ * 2. Предоставить styled-узлы `StyledButtonRoot`, `StyledButton` и `StyledButtonLabel`
+ * 3. Реэкспортировать `splitLayoutProps` для сборки в `index.tsx`
+ *
+ * Потребители:
+ *  - `src/ui/button/index.tsx` — собирает компонент Button
+ */
+
+import styled from 'styled-components';
+
+import { getBorderStyles } from '@ui/border';
+import { getControlRootStyles } from '@ui/control-root';
+import {
+  ICON_SETTING_PROP_NAMES,
+  getIconPositionStyles,
+  resolveIconStateBackground,
+} from '@ui/icon';
+import { LAYOUT_PROP_NAMES, type LayoutProps } from '@ui/layout';
+import {
+  DEFAULT_SHAPE_PRESET,
+  DEFAULT_SIZE_PRESET,
+  getMinBlockSize,
+  getPaddingInline,
+  resolveBlockRadius,
+  type ShapePreset,
+  type SizePreset,
+} from '@ui/presets';
+import { Text } from '@ui/text';
+import { getTheme, type AppTheme } from '@ui/theme';
+import {
+  DEFAULT_TONE,
+  VARIANT_SURFACE_MIX_PERCENT,
+  getToneColorKey,
+  resolveColorMix,
+  resolvePressedBackground,
+  resolveVeilBackground,
+  type TonePreset,
+} from '@ui/tones';
+
+export { splitLayoutProps } from '@ui/layout';
+
+/**
+ * ButtonSurface — представляет заливки и цвет текста кнопки.
+ *
+ * @property activeBackground — заливка в состоянии `active`
+ * @property backgroundColor — заливка в покое
+ * @property color — цвет текста
+ * @property hoverBackground — заливка при наведении
+ */
+type ButtonSurface = {
+  activeBackground: string;
+  backgroundColor: string;
+  color: string;
+  hoverBackground: string;
+};
+
+/**
+ * resolveButtonSurface — возвращает заливки и цвет текста кнопки по `tone`.
+ * Для нейтрального тона основа `surface`, наведение — вуаль поверх неё,
+ * `active` — заливка из `resolvePressedBackground`. Для цветного — цвет из
+ * темы, состояния — сдвиг к `shade`.
+ *
+ * @param theme текущая тема
+ * @param tone семантический тон кнопки
+ * @returns заливки и цвет текста для корня и секции лейбла
+ */
+function resolveButtonSurface(theme: AppTheme, tone: TonePreset): ButtonSurface {
+  const colorKey = getToneColorKey(tone);
+  const activeBackground = resolvePressedBackground(theme, tone);
+
+  if (!colorKey) {
+    return {
+      activeBackground,
+      backgroundColor: theme.colors.surface,
+      color: theme.colors.default,
+      hoverBackground: resolveVeilBackground(theme, theme.colors.surface),
+    };
+  }
+
+  const color = theme.colors[colorKey];
+
+  return {
+    activeBackground,
+    backgroundColor: color,
+    color: theme.colors.inverse,
+    hoverBackground: resolveColorMix(color, theme.colors.shade),
+  };
+}
+
+/**
+ * ButtonStyleProps — представляет пропсы стилизации Button и layout-пропсы.
+ *
+ * @property active — включает зафиксированное нажатое состояние
+ * @property borderTone — тон рамки
+ * @property iconTone — тон секции иконки
+ * @property shape — форма кнопки
+ * @property size — размер компонента
+ * @property tone — семантический тон
+ */
+export type ButtonStyleProps = LayoutProps & {
+  active?: boolean;
+  borderTone?: TonePreset;
+  iconTone?: TonePreset;
+  shape?: ShapePreset;
+  size?: SizePreset;
+  tone?: TonePreset;
+};
+
+/**
+ * StyledButtonRoot — задаёт корневой узел компонента Button.
+ * Базируется на `<div>` и поддерживает layout-пропсы.
+ *
+ * Генерация стилей:
+ *  - `getControlRootStyles` — колонка подписи и кнопки, layout-пропсы
+ */
+export const StyledButtonRoot = styled.div.withConfig({
+  shouldForwardProp: (prop) => !LAYOUT_PROP_NAMES.has(prop),
+})<LayoutProps>`
+  ${(props) => getControlRootStyles(props)}
+`;
+
+/**
+ * ButtonStyledProps — представляет пропсы стилизации узла `StyledButton`.
+ *
+ * @property hasIcon — включает split-раскладку с секцией иконки. Выключенный —
+ *   узел рисуется solid-заливкой
+ */
+type ButtonStyledProps = ButtonStyleProps & { hasIcon: boolean };
+
+/**
+ * BUTTON_PROP_NAMES — объединяет имена пропсов стилизации кнопки `StyledButton`.
+ */
+const BUTTON_PROP_NAMES = new Set<string>([
+  ...ICON_SETTING_PROP_NAMES,
+  'active',
+  'borderTone',
+  'hasIcon',
+  'shape',
+  'size',
+  'tone',
+]);
+
+/**
+ * DEFAULT_BUTTON_ACTIVE — задаёт зафиксированное нажатое состояние по умолчанию.
+ * Используется, когда вызывающий код не передал проп `active`.
+ */
+const DEFAULT_BUTTON_ACTIVE = false;
+
+/**
+ * getButtonSplitStyles — возвращает CSS-правила для узла `StyledButton`:
+ * раскладку позиции иконки и канал состояний секции иконки.
+ * Статику секции красит внутренний Icon своими пропсами, фон лейбла —
+ * собственная заливка узла. Отступ лейбла пишет `StyledButtonLabel`.
+ *
+ * Как работает:
+ * 1. Кладёт раскладку позиции через `getIconPositionStyles`: колонки под
+ *    позицию `[data-slot='icon']` и `block-size: 100%` на слоте
+ * 2. На наведении и `:focus-visible` выставляет `--icon-state-background`
+ *    через `resolveIconStateBackground`: цветной тон — сдвиг к `shade`,
+ *    нейтральный — вуаль. Тело на этих состояниях заливку не меняет
+ * 3. При `active` фиксирует значение канала: для цветной секции — уже посчитанный
+ *    `hoverStateBackground`, для нейтральной — смесь `primary` с `surface` через
+ *    `VARIANT_SURFACE_MIX_PERCENT`
+ *
+ * @param props пропсы стилизации узла и текущая тема
+ * @returns CSS-правила, каждое с новой строки
+ */
+function getButtonSplitStyles(props: ButtonStyledProps & { theme: AppTheme }): string {
+  const theme = getTheme(props);
+  const { active = DEFAULT_BUTTON_ACTIVE, iconTone = DEFAULT_TONE } = props;
+  const iconColorKey = getToneColorKey(iconTone);
+  const hoverStateBackground = resolveIconStateBackground(theme, iconTone);
+
+  const styles = [
+    getIconPositionStyles(),
+    `&:not(:disabled):hover {`,
+    `--icon-state-background: ${hoverStateBackground};`,
+    `}`,
+    `&:focus-visible {`,
+    `--icon-state-background: ${hoverStateBackground};`,
+    `}`,
+  ];
+
+  if (active) {
+    styles.push(
+      `&:not(:disabled) {`,
+      `--icon-state-background: ${
+        iconColorKey
+          ? hoverStateBackground
+          : resolveColorMix(
+              theme.colors.primary,
+              theme.colors.surface,
+              VARIANT_SURFACE_MIX_PERCENT
+            )
+      };`,
+      `}`
+    );
+  }
+
+  return styles.join('\n');
+}
+
+/**
+ * getButtonStyles — возвращает CSS-правила для узла `StyledButton`: размер,
+ * рамку с тенью через `getBorderStyles`, радиус, цвет текста, заливку
+ * с состояниями и раскладку при секции иконки.
+ *
+ * Как работает:
+ * 1. Собирает общие правила узла: размер, рамку с тенью через `getBorderStyles`,
+ *    радиус, цвет и заливка. Без иконки наведение красит тело целиком:
+ *    нейтральный тон пишет шорткат `background`, потому что заливка наведения —
+ *    слой вуали, цветной тон пишет `background-color`. С иконкой тело на
+ *    `:hover` и `:focus-visible` заливку не меняет — подсветку несёт канал
+ *    секции. Наведение тень не меняет
+ * 2. На `:active` и при `active` пишет заливку нажатия в `background-color`
+ *    и дописывает тень нажатия через `getBorderStyles`: тон поверхности
+ *    выбирает `resolvePressedShadow`. Подъём `shadow.surface` не снимается.
+ *    Положение узла не меняется
+ * 3. При `hasIcon` делегирует раскладку позиции и канал
+ *    секции иконки в `getButtonSplitStyles`
+ * 4. Без иконки кладёт `padding-inline` на узел
+ *
+ * @param props пропсы стилизации узла и текущая тема
+ * @returns CSS-правила, каждое с новой строки
+ */
+function getButtonStyles(props: ButtonStyledProps & { theme: AppTheme }): string {
+  const theme = getTheme(props);
+  const {
+    active = DEFAULT_BUTTON_ACTIVE,
+    borderTone,
+    hasIcon,
+    shape = DEFAULT_SHAPE_PRESET,
+    size = DEFAULT_SIZE_PRESET,
+    tone = DEFAULT_TONE,
+  } = props;
+  const surface = resolveButtonSurface(theme, tone);
+  const minBlockSize = getMinBlockSize(size);
+
+  const restBorder = getBorderStyles(theme, undefined, undefined, borderTone);
+  const pressedBorder = getBorderStyles(
+    theme,
+    undefined,
+    undefined,
+    borderTone,
+    true,
+    tone
+  );
+
+  const styles = [
+    `min-block-size: ${minBlockSize};`,
+    `border-radius: ${resolveBlockRadius(shape, minBlockSize)};`,
+    `color: ${surface.color};`,
+    `background-color: ${surface.backgroundColor};`,
+    restBorder,
+  ];
+
+  if (!hasIcon) {
+    styles.push(
+      getToneColorKey(tone)
+        ? `&:not(:disabled):hover { background-color: ${surface.hoverBackground}; }`
+        : `&:not(:disabled):hover { background: ${surface.hoverBackground}; }`
+    );
+  }
+
+  styles.push(
+    `&:not(:disabled):active {`,
+    `background-color: ${surface.activeBackground};`,
+    pressedBorder,
+    '}'
+  );
+
+  if (active) {
+    styles.push(
+      `&:not(:disabled) {`,
+      `background-color: ${surface.activeBackground};`,
+      pressedBorder,
+      '}'
+    );
+  }
+
+  if (hasIcon) {
+    styles.push(getButtonSplitStyles(props));
+  } else {
+    styles.push(`padding-inline: ${getPaddingInline(size)};`);
+  }
+
+  return styles.join('\n');
+}
+
+/**
+ * StyledButton — задаёт узел кнопки компонента Button.
+ * Базируется на `<button>` и поддерживает все пропсы из `ButtonStyledProps`.
+ *
+ * Встроенные стили:
+ *  - `display: grid` — сетка ряда. При секции иконки колонки задаёт
+ *    `getIconPositionStyles` в `getButtonSplitStyles`
+ *  - `grid-template-columns: minmax(0, 1fr)` — колонка лейбла без иконки ужимается
+ *    ниже min-content nowrap-текста, иначе ellipsis не срабатывает и лейбл режет
+ *    `overflow: hidden` корня. При секции иконки шаблон переопределяет
+ *    `getIconPositionStyles`
+ *  - `align-items: center` — центрирует лейбл и секцию иконки по поперечной оси
+ *  - `inline-size: 100%` — кнопка занимает ширину контейнера
+ *  - `min-inline-size: 0` — предотвращает переполнение во flex/grid-контейнере
+ *  - `overflow: hidden` — обрезает квадратное окно Icon по радиусу корня:
+ *    скругление секций — обрезка корнем, не радиусы на детях
+ *
+ * Генерация стилей:
+ *  - `getButtonStyles` — размер, рамка с тенью через `getBorderStyles`,
+ *    радиус, цвет, заливка. При иконке — раскладка и канал секции
+ *
+ * Слоты: канал состояний секции иконки задаёт узел по `[data-slot='icon']`.
+ * Статику секции красит внутренний Icon. Отступ лейбла при секции иконки —
+ * на `StyledButtonLabel`.
+ */
+export const StyledButton = styled.button.withConfig({
+  shouldForwardProp: (prop) => !BUTTON_PROP_NAMES.has(prop),
+})<ButtonStyledProps>`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  inline-size: 100%;
+  min-inline-size: 0;
+  overflow: hidden;
+  ${(props) => getButtonStyles(props)}
+`;
+
+/**
+ * ButtonLabelStyleProps — представляет пропсы стилизации слота лейбла.
+ * Проп называется `controlSize`, потому что у Text проп `size` задаёт типографику.
+ *
+ * @property controlSize — размер кнопки, из которого считается `padding-inline`
+ */
+type ButtonLabelStyleProps = {
+  controlSize?: SizePreset;
+};
+
+/**
+ * BUTTON_LABEL_PROP_NAMES — хранит имена пропсов узла `StyledButtonLabel`.
+ */
+const BUTTON_LABEL_PROP_NAMES = new Set<string>(['controlSize']);
+
+/**
+ * getButtonLabelStyles — возвращает CSS-правила для узла `StyledButtonLabel`:
+ * `padding-inline` лейбла при секции иконки.
+ * Тот же отступ, что кнопка без иконки кладёт на себя через `getPaddingInline`.
+ *
+ * @param props пропсы стилизации слота лейбла
+ * @returns CSS-правила, каждое с новой строки
+ */
+function getButtonLabelStyles(props: ButtonLabelStyleProps): string {
+  return `padding-inline: ${getPaddingInline(props.controlSize ?? DEFAULT_SIZE_PRESET)};`;
+}
+
+/**
+ * StyledButtonLabel — задаёт слот лейбла компонента Button при секции иконки.
+ * Базируется на Text, тот же `<span>` без обёртки, и принимает проп `controlSize`.
+ *
+ * Генерация стилей:
+ *  - `getButtonLabelStyles` — `padding-inline` по размеру кнопки
+ *
+ * Типографику и обрезку по-прежнему пишет Text. Секция иконки прижата к краю,
+ * потому что отступ сидит на лейбле, а не на кнопке.
+ */
+export const StyledButtonLabel = styled(Text).withConfig({
+  shouldForwardProp: (prop) => !BUTTON_LABEL_PROP_NAMES.has(prop),
+})<ButtonLabelStyleProps>`
+  ${(props) => getButtonLabelStyles(props)}
+`;

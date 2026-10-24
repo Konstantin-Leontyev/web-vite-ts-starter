@@ -1,0 +1,26 @@
+---
+description: Особенности этого репозитория для коммита и пула. Файл свой в каждом репозитории — пул и синхронизация его не переносят
+alwaysApply: false
+---
+
+## Коммит
+
+Remote — `https://github.com/Konstantin-Leontyev/web-vite-ts-starter.git`.
+
+**UI-коммит (манифест в теле).** Коммит, меняющий нейтральный UI (компоненты стартера), может нести в **теле** манифест — список компонентов и файлов для быстрого ориентира в `git log`. Заголовок — суть:
+
+```
+refactor(ui): FieldError placeholder reserve
+
+Компоненты:
+- ui/field-error
+- pages/showcase/field-error-group
+
+Файлы:
+- src/ui/field-error/{index.tsx,field-error.styles.ts}
+- src/pages/showcase/field-error-group/index.tsx
+```
+
+## Пул
+
+Стартер — источник нейтрального UI: из других репозиториев он не тянет. Перенос в продукт ведёт `puller`, выравнивание с `web-vite-ts-starter` — `synchronizer`; оба живут в репозитории `starters`.

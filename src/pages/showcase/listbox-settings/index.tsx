@@ -1,0 +1,332 @@
+/**
+ * Файл: `src/pages/showcase/listbox-settings/index.tsx`
+ * Определяет панель настроек компонента Listbox в витрине дизайн-системы.
+ * Содержит контролы для изменения размера, формы, вида триггера, рамки вида
+ * `icon`, запасного глифа вида `icon`, иконки вида `field`, сброса выбора
+ * вида `field`, поля поиска и его вида,
+ * демо-иконок опций, режима множественного выбора, чекбоксов в строках, подписи,
+ * плейсхолдера и состояния `disabled` в реальном времени.
+ *
+ * Основные задачи:
+ * 1. Типизировать состояние витрины через `ListboxWidgetState`
+ * 2. Экспортировать компонент `ListboxSettings`
+ *
+ * Потребители:
+ *  - `src/pages/showcase/index.tsx` — подключает панель и синхронизирует состояние с превью виджета Listbox
+ */
+
+import { type ChangeEvent } from 'react';
+
+import { Checkbox } from '@ui/checkbox';
+import { type IconPosition } from '@ui/icon';
+import {
+  DEFAULT_LISTBOX_EMPTY_MESSAGE,
+  DEFAULT_LISTBOX_PLACEHOLDER,
+  Listbox,
+  type ListboxAppearance,
+  type ListboxOption,
+} from '@ui/listbox';
+import { type ShapePreset, type SizePreset } from '@ui/presets';
+import { type TonePreset } from '@ui/tones';
+
+import { BorderGroup } from '../border-group';
+import { ControlGroup } from '../control-group';
+import { IconGroup } from '../icon-group';
+import { SearchFieldGroup } from '../search-field-group';
+import { ICON_OPTIONS, type IconKey } from '../showcase-icon-options';
+import { StyledSettingsForm } from '../showcase.styles';
+import { TextGroup } from '../text-group';
+
+/**
+ * LISTBOX_APPEARANCE_OPTIONS — задаёт опции вида триггера Listbox.
+ * Используется в контроле `Appearance:` панели настроек Listbox.
+ */
+const LISTBOX_APPEARANCE_OPTIONS: ListboxOption[] = [
+  { label: 'field', value: 'field' },
+  { label: 'icon', value: 'icon' },
+];
+
+/**
+ * ListboxWidgetState — представляет состояние настроек компонента Listbox в витрине дизайн-системы.
+ * Ключи совпадают с именами пропов компонента Listbox, кроме витринных ключей:
+ * `searchIconKey` выбирает глиф иконки поля поиска, `withIcon` управляет
+ * подстановкой иконок в демо-опции превью.
+ * Используется для синхронизации значений между панелью управления и демонстрационным Listbox.
+ *
+ * @property appearance — вид триггера
+ * @property borderTone — тон рамки триггера вида `icon`
+ * @property disabled — включает недоступное состояние
+ * @property emptyMessage — текст при пустом результате поиска
+ * @property iconFill — тон глифа шеврона у вида `field`
+ * @property iconKey — витринный ключ запасного глифа кнопки вида `icon`.
+ *   Стартует с шеврона вниз
+ * @property iconPosition — позиция шеврона относительно значения у вида `field`
+ * @property iconTone — тон секции шеврона у вида `field`
+ * @property inlineCheckbox — включает чекбоксы в строках опций
+ * @property label — подпись над триггером
+ * @property multiple — включает множественный выбор
+ * @property placeholder — плейсхолдер пустого триггера
+ * @property searchDisabled — включает недоступное состояние поля поиска
+ * @property searchFieldBorderTone — тон рамки поля поиска
+ * @property searchFieldIconFill — тон глифа иконки поля поиска
+ * @property searchFieldIconPosition — позиция иконки поля поиска
+ * @property searchFieldIconTone — тон секции иконки поля поиска
+ * @property searchIconKey — витринный ключ глифа иконки поля поиска
+ * @property searchPlaceholder — плейсхолдер поля поиска
+ * @property searchShape — форма поля поиска
+ * @property searchSize — размер поля поиска
+ * @property shape — форма поверхности
+ * @property showBorder — включает рамку триггера вида `icon`
+ * @property showClearButton — включает кнопку сброса выбора у вида `field` при выбранном значении
+ * @property showSearchField — включает поле поиска в панели
+ * @property showSearchFieldBorder — включает рамку поля поиска
+ * @property showSearchFieldClearButton — включает кнопку сброса поля поиска
+ * @property showSearchFieldIcon — включает иконку поля поиска
+ * @property showSearchFieldOutline — включает обводку фокуса поля поиска
+ * @property showSearchFieldShadow — включает тень поля поиска при включённой рамке
+ * @property showShadow — включает тень триггера вида `icon` при включённой рамке
+ * @property size — размер компонента
+ * @property tinted — включает мягкую заливку поля поиска
+ * @property value — буфер выбранного значения в превью. В панель не выносится
+ * @property withIcon — витринный ключ показа иконок в демо-опциях. Выключенный — опции без иконок
+ */
+export type ListboxWidgetState = {
+  appearance: ListboxAppearance;
+  borderTone: TonePreset;
+  disabled: boolean;
+  emptyMessage: string;
+  iconFill: TonePreset;
+  iconKey: IconKey;
+  iconPosition: IconPosition;
+  iconTone: TonePreset;
+  inlineCheckbox: boolean;
+  label: string;
+  multiple: boolean;
+  placeholder: string;
+  searchDisabled: boolean;
+  searchFieldBorderTone: TonePreset;
+  searchFieldIconFill: TonePreset;
+  searchFieldIconPosition: IconPosition;
+  searchFieldIconTone: TonePreset;
+  searchIconKey: IconKey;
+  searchPlaceholder: string;
+  searchShape: ShapePreset;
+  searchSize: SizePreset;
+  shape: ShapePreset;
+  showBorder: boolean;
+  showClearButton: boolean;
+  showSearchField: boolean;
+  showSearchFieldBorder: boolean;
+  showSearchFieldClearButton: boolean;
+  showSearchFieldIcon: boolean;
+  showSearchFieldOutline: boolean;
+  showSearchFieldShadow: boolean;
+  showShadow: boolean;
+  size: SizePreset;
+  tinted: boolean;
+  value: string | string[];
+  withIcon: boolean;
+};
+
+/**
+ * ListboxSettingsProps — представляет пропсы компонента ListboxSettings.
+ *
+ * @property onChange — обработчик изменения поля состояния витрины
+ * @property state — текущее состояние настроек Listbox
+ */
+type ListboxSettingsProps = {
+  onChange: <K extends keyof ListboxWidgetState>(
+    key: K,
+    value: ListboxWidgetState[K]
+  ) => void;
+  state: ListboxWidgetState;
+};
+
+/**
+ * ListboxSettings — отображает панель настроек Listbox в витрине дизайн-системы.
+ *
+ * @example
+ * <ListboxSettings state={listbox} onChange={updateListbox} />
+ */
+export function ListboxSettings({ onChange, state }: ListboxSettingsProps) {
+  return (
+    <StyledSettingsForm onSubmit={(event) => event.preventDefault()}>
+      <ControlGroup
+        label={state.label}
+        shape={state.shape}
+        size={state.size}
+        onLabelChange={(label) => onChange('label', label)}
+        onShapeChange={(shape) => onChange('shape', shape)}
+        onSizeChange={(size) => {
+          onChange('size', size);
+          onChange('searchSize', size);
+        }}
+      />
+
+      <Listbox
+        label="Appearance:"
+        options={LISTBOX_APPEARANCE_OPTIONS}
+        value={state.appearance}
+        onChange={(value) => onChange('appearance', value as ListboxAppearance)}
+      />
+
+      {state.appearance === 'icon' && (
+        <BorderGroup
+          borderTone={state.borderTone}
+          showBorder={state.showBorder}
+          showShadow={state.showShadow}
+          onBorderToneChange={(tone) => onChange('borderTone', tone)}
+          onShowBorderChange={(show) => onChange('showBorder', show)}
+          onShowShadowChange={(show) => onChange('showShadow', show)}
+        />
+      )}
+
+      <TextGroup
+        contents={[
+          {
+            boxedString: DEFAULT_LISTBOX_PLACEHOLDER,
+            value: state.placeholder,
+            onChange: (value) => onChange('placeholder', value),
+          },
+        ]}
+        labelPrefix="Placeholder"
+      />
+
+      {state.appearance === 'icon' && (
+        <Listbox
+          label="Icon:"
+          options={ICON_OPTIONS}
+          showSearchField
+          value={state.iconKey}
+          onChange={(value) => onChange('iconKey', value as IconKey)}
+        />
+      )}
+
+      {state.appearance === 'field' && (
+        <IconGroup
+          fill={state.iconFill}
+          labelPrefix="Icon"
+          position={state.iconPosition}
+          tone={state.iconTone}
+          onFillChange={(tone) => onChange('iconFill', tone)}
+          onPositionChange={(position) => onChange('iconPosition', position)}
+          onToneChange={(tone) => onChange('iconTone', tone)}
+        />
+      )}
+
+      {state.appearance === 'field' && (
+        <Checkbox
+          checked={state.showClearButton}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            onChange('showClearButton', event.target.checked)
+          }
+        >
+          Show clear button
+        </Checkbox>
+      )}
+
+      <Checkbox
+        checked={state.showSearchField}
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChange('showSearchField', event.target.checked)
+        }
+      >
+        Show search field
+      </Checkbox>
+
+      {state.showSearchField && (
+        <>
+          <SearchFieldGroup
+            borderTone={state.searchFieldBorderTone}
+            disabled={state.searchDisabled}
+            iconFill={state.searchFieldIconFill}
+            iconKey={state.searchIconKey}
+            iconOptions={ICON_OPTIONS}
+            iconPosition={state.searchFieldIconPosition}
+            iconTone={state.searchFieldIconTone}
+            labelPrefix="Search field"
+            placeholder={state.searchPlaceholder}
+            shape={state.searchShape}
+            showBorder={state.showSearchFieldBorder}
+            showClearButton={state.showSearchFieldClearButton}
+            showIcon={state.showSearchFieldIcon}
+            showOutline={state.showSearchFieldOutline}
+            showShadow={state.showSearchFieldShadow}
+            size={state.searchSize}
+            tinted={state.tinted}
+            onBorderToneChange={(tone) => onChange('searchFieldBorderTone', tone)}
+            onDisabledChange={(disabled) => onChange('searchDisabled', disabled)}
+            onIconFillChange={(tone) => onChange('searchFieldIconFill', tone)}
+            onIconKeyChange={(iconKey) => onChange('searchIconKey', iconKey as IconKey)}
+            onIconPositionChange={(position) =>
+              onChange('searchFieldIconPosition', position)
+            }
+            onIconToneChange={(tone) => onChange('searchFieldIconTone', tone)}
+            onPlaceholderChange={(placeholder) =>
+              onChange('searchPlaceholder', placeholder)
+            }
+            onShapeChange={(shape) => onChange('searchShape', shape)}
+            onShowBorderChange={(show) => onChange('showSearchFieldBorder', show)}
+            onShowClearButtonChange={(show) =>
+              onChange('showSearchFieldClearButton', show)
+            }
+            onShowIconChange={(show) => onChange('showSearchFieldIcon', show)}
+            onShowOutlineChange={(show) => onChange('showSearchFieldOutline', show)}
+            onShowShadowChange={(show) => onChange('showSearchFieldShadow', show)}
+            onSizeChange={(size) => onChange('searchSize', size)}
+            onTintedChange={(tinted) => onChange('tinted', tinted)}
+          />
+
+          <TextGroup
+            contents={[
+              {
+                boxedString: DEFAULT_LISTBOX_EMPTY_MESSAGE,
+                value: state.emptyMessage,
+                onChange: (value) => onChange('emptyMessage', value),
+              },
+            ]}
+            labelPrefix="Empty message"
+          />
+        </>
+      )}
+
+      <Checkbox
+        checked={state.withIcon}
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChange('withIcon', event.target.checked)
+        }
+      >
+        Show option icons
+      </Checkbox>
+
+      <Checkbox
+        checked={state.multiple}
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChange('multiple', event.target.checked)
+        }
+      >
+        Multiple
+      </Checkbox>
+
+      {state.multiple && (
+        <Checkbox
+          checked={state.inlineCheckbox}
+          onChange={(event: ChangeEvent<HTMLInputElement>) =>
+            onChange('inlineCheckbox', event.target.checked)
+          }
+        >
+          Inline checkbox
+        </Checkbox>
+      )}
+
+      <Checkbox
+        checked={state.disabled}
+        onChange={(event: ChangeEvent<HTMLInputElement>) =>
+          onChange('disabled', event.target.checked)
+        }
+      >
+        Disabled
+      </Checkbox>
+    </StyledSettingsForm>
+  );
+}

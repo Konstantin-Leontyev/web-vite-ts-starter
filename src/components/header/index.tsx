@@ -1,0 +1,185 @@
+/**
+ * Файл: `src/components/header/index.tsx`
+ * Предоставляет компонент Header для отображения шапки страницы.
+ *
+ * Поддерживает:
+ *  - режим скрытия шапки через проп `autoHide`
+ *  - содержимое бренда слева через проп `brand`
+ *  - содержимое центральной колонки через проп `center`
+ *  - узлы перед кнопкой настроек через проп `leadingActions`
+ *  - обработчик кнопки настроек через проп `onSettingsClick`
+ *  - id панели кнопки настроек через проп `settingsAriaControls`
+ *  - раскрытость панели кнопки настроек через проп `settingsAriaExpanded`
+ *  - доступное имя кнопки настроек через проп `settingsLabel`
+ *
+ * Основные задачи:
+ * 1. Экспортировать компонент Header
+ * 2. Типизировать пропсы через `HeaderProps`
+ * 3. Реэкспортировать `HEADER_BLOCK_SIZE`
+ * 4. Выставлять `aria-label` кнопки настроек, а при переданных пропах —
+ *    `aria-controls` и `aria-expanded`
+ *
+ * Потребители:
+ *  - `src/components/router/router-layout.tsx` — рендерит Header в каркасе страницы
+ *  - `src/pages/showcase/showcase.styles.ts` — читает `HEADER_BLOCK_SIZE` для высоты витрины
+ *  - `src/context/toast/toast.styles.ts` — читает `HEADER_BLOCK_SIZE` для высоты стека уведомлений
+ */
+
+import { useLayoutEffect, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { ProfileMenu } from '@components/profile-menu';
+import { ThemeToggle } from '@components/theme-toggle';
+import { SettingsIcon } from '@icons';
+import { Icon } from '@ui/icon';
+import { Text } from '@ui/text';
+
+import {
+  DEFAULT_HEADER_AUTO_HIDE,
+  HEADER_BLOCK_SIZE,
+  HeaderShellStyle,
+  StyledHeader,
+  StyledHeaderActions,
+  StyledHeaderBar,
+  StyledHeaderBrand,
+  StyledHeaderProject,
+} from './header.styles';
+
+/**
+ * DEFAULT_HEADER_SETTINGS_LABEL — задаёт доступное имя кнопки настроек по умолчанию.
+ * Используется, когда вызывающий код не передал проп `settingsLabel`.
+ */
+const DEFAULT_HEADER_SETTINGS_LABEL = 'Showcase';
+
+/**
+ * HeaderProps — представляет пропсы компонента Header.
+ *
+ * @property autoHide — включает режим скрытия шапки
+ * @property brand — содержимое бренда слева
+ * @property center — содержимое центральной колонки
+ * @property leadingActions — узлы перед кнопкой настроек в ряду действий
+ * @property onSettingsClick — обработчик нажатия кнопки настроек
+ * @property settingsAriaControls — id панели, которой управляет кнопка настроек
+ * @property settingsAriaExpanded — раскрытое состояние панели кнопки настроек
+ * @property settingsLabel — доступное имя кнопки настроек
+ */
+type HeaderProps = {
+  autoHide?: boolean;
+  brand?: ReactNode;
+  center?: ReactNode;
+  leadingActions?: ReactNode;
+  onSettingsClick?: () => void;
+  settingsAriaControls?: string;
+  settingsAriaExpanded?: boolean;
+  settingsLabel?: string;
+};
+
+/**
+ * useHeaderAutoHide — возвращает состояние и обработчики видимости шапки для режима `autoHide`.
+ *
+ * Как работает:
+ * 1. При смене `autoHide` синхронизирует внутреннее состояние: включение сначала показывает
+ *    шапку, выключение сразу скрывает её
+ * 2. После включения в следующем кадре анимации скрывает шапку через `requestAnimationFrame`
+ * 3. Отдаёт `dataRevealed` и обработчики наведения только когда `autoHide` включён
+ *
+ * @param autoHide включает режим скрытия шапки
+ * @returns объект с `dataRevealed`, `handleMouseEnter` и `handleMouseLeave`
+ */
+function useHeaderAutoHide(autoHide: boolean) {
+  const [prevAutoHide, setPrevAutoHide] = useState(autoHide);
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  if (autoHide !== prevAutoHide) {
+    setPrevAutoHide(autoHide);
+
+    if (autoHide) {
+      setIsRevealed(true);
+    } else {
+      setIsRevealed(false);
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (!autoHide) {
+      return;
+    }
+
+    const frameId = requestAnimationFrame(() => {
+      setIsRevealed(false);
+    });
+
+    return () => {
+      cancelAnimationFrame(frameId);
+    };
+  }, [autoHide]);
+
+  return {
+    dataRevealed: autoHide ? isRevealed : undefined,
+    handleMouseEnter: autoHide ? () => setIsRevealed(true) : undefined,
+    handleMouseLeave: autoHide ? () => setIsRevealed(false) : undefined,
+  };
+}
+
+/**
+ * Header — отображает шапку страницы с брендом, центральным слотом и рядом действий.
+ *
+ * @example
+ * <Header />
+ * <Header autoHide brand={<Text size="bold">AlgoTrade</Text>} />
+ */
+export function Header({
+  autoHide,
+  brand,
+  center,
+  leadingActions,
+  onSettingsClick,
+  settingsAriaControls,
+  settingsAriaExpanded,
+  settingsLabel = DEFAULT_HEADER_SETTINGS_LABEL,
+}: HeaderProps) {
+  const navigate = useNavigate();
+  const { dataRevealed, handleMouseEnter, handleMouseLeave } = useHeaderAutoHide(
+    autoHide ?? DEFAULT_HEADER_AUTO_HIDE
+  );
+  const handleSettingsClick = onSettingsClick ?? (() => navigate('/showcase'));
+  const brandNode = brand ?? <Text size="bold">Project Name</Text>;
+
+  return (
+    <>
+      <HeaderShellStyle />
+      <StyledHeader
+        autoHide={autoHide}
+        data-revealed={dataRevealed}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      >
+        <StyledHeaderBar>
+          <StyledHeaderBrand end to="/">
+            {brandNode}
+          </StyledHeaderBrand>
+
+          {Boolean(center) && <StyledHeaderProject>{center}</StyledHeaderProject>}
+
+          <StyledHeaderActions>
+            {leadingActions}
+            <Icon
+              aria-controls={settingsAriaControls}
+              aria-expanded={settingsAriaExpanded}
+              aria-label={settingsLabel}
+              as="button"
+              shape="round"
+              onClick={handleSettingsClick}
+            >
+              <SettingsIcon />
+            </Icon>
+            <ThemeToggle />
+            <ProfileMenu />
+          </StyledHeaderActions>
+        </StyledHeaderBar>
+      </StyledHeader>
+    </>
+  );
+}
+
+export { DEFAULT_HEADER_AUTO_HIDE, HEADER_BLOCK_SIZE };

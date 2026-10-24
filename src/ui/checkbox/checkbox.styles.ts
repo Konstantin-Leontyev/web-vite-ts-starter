@@ -1,0 +1,292 @@
+/**
+ * Файл: `src/ui/checkbox/checkbox.styles.ts`
+ * Определяет внешний вид компонента Checkbox.
+ *
+ * Основные задачи:
+ * 1. Типизировать пропсы через `CheckboxStyleProps`, `CheckboxCheckedMark` и `CheckboxUncheckedMark`
+ * 2. Хранить габариты бокса и размер марки в `checkboxSizePresets`
+ * 3. Предоставить перечни `CHECKBOX_CHECKED_MARK_KEYS` и `CHECKBOX_UNCHECKED_MARK_KEYS`
+ * 4. Предоставить styled-узлы `StyledCheckboxRoot` и `StyledCheckboxControl`
+ * 5. Реэкспортировать `splitLayoutProps` для сборки в `index.tsx`
+ *
+ * Потребители:
+ *  - `src/ui/checkbox/index.tsx` — собирает компонент Checkbox и реэкспортирует публичное API
+ */
+
+import styled from 'styled-components';
+
+import { getBorderStyles } from '@ui/border';
+import { getChoiceControlRootStyles } from '@ui/choice-control';
+import { LAYOUT_PROP_NAMES, getLayoutStyles, type LayoutProps } from '@ui/layout';
+import { DEFAULT_SIZE_PRESET, type SizePreset } from '@ui/presets';
+import { getSpacingValue, type SpacingValue } from '@ui/spacing';
+import { getTheme, type AppTheme } from '@ui/theme';
+
+export { splitLayoutProps } from '@ui/layout';
+
+/**
+ * checkboxSizePresets — хранит габарит бокса и размер марки для каждого размера ряда.
+ * Ключ — размер из `SizePreset`, значение — пара ключей шкалы из `@ui/spacing`:
+ *  - `iconSize` → размер марки
+ *  - `size` → габарит бокса
+ * Ряд компактнее контролов.
+ */
+export const checkboxSizePresets = Object.freeze({
+  small: Object.freeze({ iconSize: 8, size: 12 } as const),
+  normal: Object.freeze({ iconSize: 8, size: 16 } as const),
+  large: Object.freeze({ iconSize: 12, size: 20 } as const),
+} as const satisfies Record<SizePreset, { iconSize: SpacingValue; size: SpacingValue }>);
+
+/**
+ * getCheckboxSize — возвращает CSS-размер стороны бокса.
+ *
+ * @param size размер из ряда контролов
+ * @returns длина стороны в rem
+ */
+function getCheckboxSize(size: SizePreset): string {
+  return getSpacingValue(checkboxSizePresets[size].size);
+}
+
+/**
+ * getCheckboxIconSize — возвращает CSS-размер марки.
+ *
+ * @param size размер из ряда контролов
+ * @returns размер марки в rem
+ */
+function getCheckboxIconSize(size: SizePreset): string {
+  return getSpacingValue(checkboxSizePresets[size].iconSize);
+}
+
+/**
+ * CheckboxCheckedMark — представляет марку в checked-состоянии.
+ */
+export type CheckboxCheckedMark = 'check' | 'minus';
+
+/**
+ * CHECKBOX_CHECKED_MARK_KEYS — задаёт перечень марок checked-состояния.
+ * Используется в панелях настроек витрины дизайн-системы: `CheckboxSettings`
+ * собирает из него опции для `Listbox`.
+ */
+export const CHECKBOX_CHECKED_MARK_KEYS = Object.freeze([
+  'check',
+  'minus',
+] as const satisfies readonly CheckboxCheckedMark[]);
+
+/**
+ * CheckboxUncheckedMark — представляет марку в unchecked-состоянии.
+ */
+export type CheckboxUncheckedMark = 'none' | 'plus';
+
+/**
+ * CHECKBOX_UNCHECKED_MARK_KEYS — задаёт перечень марок unchecked-состояния.
+ * Используется в панелях настроек витрины дизайн-системы: `CheckboxSettings`
+ * собирает из него опции для `Listbox`.
+ */
+export const CHECKBOX_UNCHECKED_MARK_KEYS = Object.freeze([
+  'none',
+  'plus',
+] as const satisfies readonly CheckboxUncheckedMark[]);
+
+/**
+ * StyledCheckboxRoot — задаёт корневой узел компонента Checkbox.
+ * Базируется на `<label>` и поддерживает пропсы из `LayoutProps`.
+ *
+ * Генерация стилей:
+ *  - `getChoiceControlRootStyles` — ряд бокса и подписи, layout-пропсы
+ */
+export const StyledCheckboxRoot = styled.label.withConfig({
+  shouldForwardProp: (prop) => !LAYOUT_PROP_NAMES.has(prop),
+})<LayoutProps>`
+  ${(props) => getChoiceControlRootStyles(props)}
+`;
+
+/**
+ * CheckboxStyleProps — представляет пропсы стилизации Checkbox и layout-пропсы.
+ *
+ * @property checkedMark — марка в checked-состоянии
+ * @property inverted — включает рамку тона `primary` в покое и красит марки в `primary`
+ * @property size — размер бокса
+ * @property uncheckedMark — марка в unchecked-состоянии
+ */
+export type CheckboxStyleProps = LayoutProps & {
+  checkedMark?: CheckboxCheckedMark;
+  inverted?: boolean;
+  size?: SizePreset;
+  uncheckedMark?: CheckboxUncheckedMark;
+};
+
+/**
+ * CHECKBOX_CONTROL_PROP_NAMES — объединяет имена layout-пропсов и пропсов стилизации бокса Checkbox.
+ */
+const CHECKBOX_CONTROL_PROP_NAMES = new Set<string>([
+  ...LAYOUT_PROP_NAMES,
+  'checkedMark',
+  'inverted',
+  'size',
+  'uncheckedMark',
+]);
+
+/**
+ * DEFAULT_CHECKBOX_CHECKED_MARK — задаёт марку checked-состояния по умолчанию.
+ * Используется, когда вызывающий код не передал проп `checkedMark`.
+ */
+const DEFAULT_CHECKBOX_CHECKED_MARK: CheckboxCheckedMark = 'check';
+
+/**
+ * DEFAULT_CHECKBOX_UNCHECKED_MARK — задаёт марку unchecked-состояния по умолчанию.
+ * Используется, когда вызывающий код не передал проп `uncheckedMark`.
+ */
+const DEFAULT_CHECKBOX_UNCHECKED_MARK: CheckboxUncheckedMark = 'none';
+
+/**
+ * DEFAULT_CHECKBOX_INVERTED — задаёт режим `inverted` по умолчанию.
+ * Используется, когда вызывающий код не передал проп `inverted`.
+ */
+const DEFAULT_CHECKBOX_INVERTED = false;
+
+/**
+ * markIcon — преобразует SVG-путь и цвет обводки в data-URI для `background-image`.
+ * Марка рисуется CSS-фоном, потому что бокс — нативный `<input>`: это пустой элемент,
+ * SVG-компонент внутрь не вкладывается. Разметка SVG закодирована для URL:
+ * `%3C` → `<`, `%23` → `#`. Символ `#` в цвете обводки кодируется здесь же.
+ *
+ * @param pathD атрибут `d` SVG-пути
+ * @param strokeColor цвет обводки марки
+ * @returns значение для CSS-свойства `background-image`
+ */
+function markIcon(pathD: string, strokeColor: string): string {
+  const stroke = strokeColor.replace('#', '%23');
+
+  return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath stroke='${stroke}' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='${pathD}'/%3E%3C/svg%3E")`;
+}
+
+/**
+ * checkIcon — возвращает data-URI галки для checked-состояния.
+ *
+ * @param strokeColor цвет обводки
+ * @returns значение для CSS-свойства `background-image`
+ */
+function checkIcon(strokeColor: string): string {
+  return markIcon('M2.5 6 5 8.5 9.5 3.5', strokeColor);
+}
+
+/**
+ * plusIcon — возвращает data-URI плюса для unchecked-состояния.
+ *
+ * @param strokeColor цвет обводки
+ * @returns значение для CSS-свойства `background-image`
+ */
+function plusIcon(strokeColor: string): string {
+  return markIcon('M3 6h6M6 3v6', strokeColor);
+}
+
+/**
+ * minusIcon — возвращает data-URI минуса для checked-состояния.
+ *
+ * @param strokeColor цвет обводки
+ * @returns значение для CSS-свойства `background-image`
+ */
+function minusIcon(strokeColor: string): string {
+  return markIcon('M3 6h6', strokeColor);
+}
+
+/**
+ * markBackground — возвращает CSS-правила фоновой марки.
+ *
+ * @param mark data-URI марки
+ * @param iconSize размер марки в rem
+ * @returns CSS-правила, каждое с новой строки
+ */
+function markBackground(mark: string, iconSize: string): string {
+  return `
+    background-image: ${mark};
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: ${iconSize} ${iconSize};
+  `;
+}
+
+/**
+ * getCheckboxControlStyles — возвращает CSS-правила для узла `StyledCheckboxControl`:
+ * габариты, рамку с тенью, марки unchecked и checked.
+ * `flex-shrink: 0` оставляет бокс несжимаемым: без подписи бокс может быть
+ * flex-элементом родителя, и свойство действует.
+ *
+ * Как работает:
+ * 1. Берёт тему и подставляет дефолты `checkedMark`, `inverted`, `size` и
+ *    `uncheckedMark`
+ * 2. При `inverted` красит checked-поле в `inverse`, марки в `primary` и
+ *    рамку покоя тоном `primary`. Иначе — поле в `primary`, checked-марку в
+ *    `inverse`, unchecked-марку в `default`, рамку покоя дефолтом хелпера
+ * 3. Собирает начальный массив: габариты, сброс layout-рамки UA через
+ *    `border: none`, рамку с тенью и безусловный `&:checked` с заливкой,
+ *    фоновой маркой и рамкой с тенью тона `primary`
+ * 4. При значении `plus` у `uncheckedMark` добавляет `&:not(:checked)` с
+ *    фоновой маркой
+ *
+ * @param props пропсы стилизации бокса и тема
+ * @returns CSS-правила, каждое с новой строки
+ */
+function getCheckboxControlStyles(
+  props: CheckboxStyleProps & { theme: AppTheme }
+): string {
+  const theme = getTheme(props);
+  const {
+    checkedMark = DEFAULT_CHECKBOX_CHECKED_MARK,
+    inverted = DEFAULT_CHECKBOX_INVERTED,
+    size = DEFAULT_SIZE_PRESET,
+    uncheckedMark = DEFAULT_CHECKBOX_UNCHECKED_MARK,
+  } = props;
+  const checkboxSize = getCheckboxSize(size);
+  const iconSize = getCheckboxIconSize(size);
+
+  const checkedBackground = inverted ? theme.colors.inverse : theme.colors.primary;
+  const uncheckedStroke = inverted ? theme.colors.primary : theme.colors.default;
+  const checkedStroke = inverted ? theme.colors.primary : theme.colors.inverse;
+  const restBorder = inverted
+    ? getBorderStyles(theme, true, true, 'primary')
+    : getBorderStyles(theme);
+  const checkedMarkIcon =
+    checkedMark === 'minus' ? minusIcon(checkedStroke) : checkIcon(checkedStroke);
+
+  const styles = [
+    'flex-shrink: 0;',
+    `inline-size: ${checkboxSize};`,
+    `block-size: ${checkboxSize};`,
+    'appearance: none;',
+    'border: none;',
+    `background-color: ${theme.colors.surface};`,
+    restBorder,
+    `border-radius: ${getSpacingValue(4)};`,
+    `&:checked {
+      background-color: ${checkedBackground};
+      ${markBackground(checkedMarkIcon, iconSize)}
+      ${getBorderStyles(theme, true, true, 'primary')}
+    }`,
+  ];
+
+  if (uncheckedMark === 'plus') {
+    styles.push(
+      `&:not(:checked) {
+        ${markBackground(plusIcon(uncheckedStroke), iconSize)}
+      }`
+    );
+  }
+
+  return styles.join('\n');
+}
+
+/**
+ * StyledCheckboxControl — задаёт нативный бокс Checkbox.
+ * Базируется на `<input type="checkbox">` и поддерживает пропсы из `CheckboxStyleProps`.
+ *
+ * Генерация стилей:
+ *  - `getCheckboxControlStyles` — габариты, рамка с тенью, марки состояний
+ *  - `getLayoutStyles` — отступы, позиционирование, размеры при рендере без обёртки
+ */
+export const StyledCheckboxControl = styled.input.withConfig({
+  shouldForwardProp: (prop) => !CHECKBOX_CONTROL_PROP_NAMES.has(prop),
+})<CheckboxStyleProps>`
+  ${(props) => getCheckboxControlStyles(props)}
+  ${(props) => getLayoutStyles(props)}
+`;

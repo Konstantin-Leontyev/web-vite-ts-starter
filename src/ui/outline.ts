@@ -1,0 +1,75 @@
+/**
+ * Файл: `src/ui/outline.ts`
+ * Содержит обводку узла: генератор пары `outline` / `outline-offset` и метрики
+ * обводки. Делегирует цвет вызывающему коду токеном состояния: `focusOutline` для
+ * `:focus-visible` и панелей, `invalidOutline` для невалидных полей.
+ *
+ * Основные задачи:
+ * 1. Предоставить функцию `getOutlineStyles`
+ * 2. Экспортировать `OUTLINE_OFFSET` и `OUTLINE_OVERHANG_PX`
+ *
+ * Потребители:
+ *  - `src/ui/reset.ts` — задаёт глобальную обводку `:focus-visible` и полей
+ *    с `aria-invalid="true"` через `getOutlineStyles`
+ *  - styles-файлы контролов и панелей, например Switch и AnchoredPanel —
+ *    подставляют обводку через `getOutlineStyles`
+ *  - оболочки с `&:has(:focus-visible)` — рисуют фокус-контур через `getOutlineStyles`:
+ *    - `src/ui/input/input.styles.ts`
+ *    - `src/ui/open-control/open-control.styles.ts`
+ *    - `src/ui/search-field/search-field.styles.ts`
+ *    - `src/ui/segment-button/segment-button.styles.ts`
+ *    - `src/ui/stepper/stepper.styles.ts`
+ *  - `src/ui/icon/icon.styles.ts` — рисует обводку тихого сброса через
+ *    `getOutlineStyles` и `fieldClearOutlineOffset`
+ *  - `src/ui/viewport.ts` — учитывает `OUTLINE_OVERHANG_PX` в отступе clamp панелей
+ */
+
+/**
+ * OUTLINE_WIDTH_PX — задаёт толщину обводки в px. Источник для `OUTLINE_WIDTH`
+ * и `OUTLINE_OVERHANG_PX`. Намеренно px, не шкала: обводка не растёт
+ * с `font-size` корня.
+ */
+const OUTLINE_WIDTH_PX = 2;
+
+/**
+ * OUTLINE_OFFSET_PX — задаёт отступ обводки от края узла в px.
+ * Источник для `OUTLINE_OFFSET` и `OUTLINE_OVERHANG_PX`.
+ */
+const OUTLINE_OFFSET_PX = 2;
+
+/**
+ * OUTLINE_WIDTH — формирует толщину обводки контролов и панелей из `OUTLINE_WIDTH_PX`.
+ * Используется в `getOutlineStyles`.
+ */
+const OUTLINE_WIDTH = `${OUTLINE_WIDTH_PX}px`;
+
+/**
+ * OUTLINE_OFFSET — формирует отступ обводки от края узла из `OUTLINE_OFFSET_PX`.
+ * Используется в `getOutlineStyles` как значение по умолчанию.
+ */
+export const OUTLINE_OFFSET = `${OUTLINE_OFFSET_PX}px`;
+
+/**
+ * OUTLINE_OVERHANG_PX — формирует вылет обводки за `border-box` из `OUTLINE_WIDTH_PX`
+ * и `OUTLINE_OFFSET_PX`. Число px для JS-математики позиционирования — геометрия DOM
+ * считается в px, в CSS-правиле не попадает.
+ * Используется в `PANEL_VIEWPORT_EDGE_INSET` из `@ui/viewport`.
+ */
+export const OUTLINE_OVERHANG_PX = OUTLINE_WIDTH_PX + OUTLINE_OFFSET_PX;
+
+/**
+ * getOutlineStyles — возвращает CSS-правила обводки: `outline` и
+ * `outline-offset`. Толщина — `OUTLINE_WIDTH`. Отступ — `options.offset`
+ * или `OUTLINE_OFFSET`.
+ *
+ * @param color цвет обводки, обычно `theme.colors.focusOutline` или
+ *   `theme.colors.invalidOutline`
+ * @param options опциональный `offset` обводки
+ * @returns CSS-правила, каждое с новой строки
+ */
+export function getOutlineStyles(color: string, options?: { offset?: string }): string {
+  return `
+    outline: ${OUTLINE_WIDTH} solid ${color};
+    outline-offset: ${options?.offset ?? OUTLINE_OFFSET};
+  `;
+}

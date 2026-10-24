@@ -1,0 +1,175 @@
+/**
+ * Файл: `src/pages/showcase/modal-settings/index.tsx`
+ * Определяет панель настроек компонента Modal в витрине дизайн-системы.
+ * Содержит контролы для изменения размера, рамки и тени, фона, заголовка,
+ * подзаголовка и рамки действий в реальном времени. Не настраивает
+ * тело модального окна: превью передаёт витринный плейсхолдер через `children`.
+ *
+ * Основные задачи:
+ * 1. Типизировать состояние витрины через `ModalWidgetState`
+ * 2. Экспортировать компонент `ModalSettings`
+ *
+ * Потребители:
+ *  - `src/pages/showcase/index.tsx` — подключает панель и синхронизирует состояние с превью виджета Modal
+ */
+
+import { SIZE_PRESET_KEYS, type SizePreset } from '@ui/presets';
+import { type SurfaceBackgroundPreset } from '@ui/surface';
+import {
+  type TextAlignPreset,
+  type TextSizePreset,
+  type TextTonePreset,
+} from '@ui/text';
+import { type TonePreset } from '@ui/tones';
+
+import { ActionBorderGroup } from '../action-border-group';
+import { BackgroundListbox } from '../background-listbox';
+import { BorderGroup } from '../border-group';
+import { StyledSettingsForm } from '../showcase.styles';
+import { SizeListbox } from '../size-listbox';
+import { TextGroup } from '../text-group';
+
+/**
+ * ModalWidgetState — представляет состояние настроек компонента Modal в витрине дизайн-системы.
+ * Ключи совпадают с именами пропов компонента Modal, кроме витринных ключей: `size`
+ * управляет передачей `inlineSize` в превью.
+ * Пустая строка заголовка или подзаголовка означает вызов без пропа. Отметка `Set*`
+ * живёт внутри TextGroup.
+ * Используется для синхронизации значений между панелью управления и демонстрационным виджетом Modal.
+ *
+ * @property background — заливка поверхности
+ * @property borderTone — тон рамки
+ * @property showActionBorder — включает рамку действий
+ * @property showActionShadow — включает тень действий при включённой рамке
+ * @property showBorder — включает рамку
+ * @property showShadow — включает тень при включённой рамке
+ * @property size — витринный ключ ширины панели
+ * @property subtitle — подзаголовок
+ * @property subtitleAlign — выравнивание подзаголовка
+ * @property subtitleItalic — включает курсив подзаголовка
+ * @property subtitleSize — размер подзаголовка
+ * @property subtitleTone — тон подзаголовка
+ * @property title — заголовок
+ * @property titleAlign — выравнивание заголовка
+ * @property titleItalic — включает курсив заголовка
+ * @property titleSize — размер заголовка
+ * @property titleTone — тон заголовка
+ */
+export type ModalWidgetState = {
+  background: SurfaceBackgroundPreset;
+  borderTone: TonePreset;
+  showActionBorder: boolean;
+  showActionShadow: boolean;
+  showBorder: boolean;
+  showShadow: boolean;
+  size: SizePreset;
+  subtitle: string;
+  subtitleAlign?: TextAlignPreset;
+  subtitleItalic: boolean;
+  subtitleSize?: TextSizePreset;
+  subtitleTone: TextTonePreset;
+  title: string;
+  titleAlign?: TextAlignPreset;
+  titleItalic: boolean;
+  titleSize: TextSizePreset;
+  titleTone: TextTonePreset;
+};
+
+/**
+ * ModalSettingsProps — представляет пропсы компонента ModalSettings.
+ *
+ * @property onChange — обработчик изменения поля состояния витрины
+ * @property state — текущее состояние настроек модального окна
+ */
+type ModalSettingsProps = {
+  onChange: <K extends keyof ModalWidgetState>(
+    key: K,
+    value: ModalWidgetState[K]
+  ) => void;
+  state: ModalWidgetState;
+};
+
+/**
+ * ModalSettings — отображает панель настроек Modal в витрине дизайн-системы.
+ *
+ * @example
+ * <ModalSettings state={modal} onChange={updateModal} />
+ */
+export function ModalSettings({ onChange, state }: ModalSettingsProps) {
+  return (
+    <StyledSettingsForm onSubmit={(event) => event.preventDefault()}>
+      <SizeListbox
+        label="Size:"
+        sizes={SIZE_PRESET_KEYS}
+        value={state.size}
+        onChange={(size) => onChange('size', size)}
+      />
+
+      <BorderGroup
+        borderTone={state.borderTone}
+        showBorder={state.showBorder}
+        showShadow={state.showShadow}
+        onBorderToneChange={(tone) => onChange('borderTone', tone)}
+        onShowBorderChange={(show) => onChange('showBorder', show)}
+        onShowShadowChange={(show) => onChange('showShadow', show)}
+      />
+
+      <BackgroundListbox
+        label="Background:"
+        value={state.background}
+        onChange={(background) => onChange('background', background)}
+      />
+
+      <TextGroup
+        align={state.titleAlign}
+        contents={[
+          {
+            value: state.title,
+            onChange: (value) => onChange('title', value),
+          },
+        ]}
+        italic={state.titleItalic}
+        labelPrefix="Title"
+        size={state.titleSize}
+        tones={[
+          {
+            value: state.titleTone,
+            onChange: (tone) => onChange('titleTone', tone),
+          },
+        ]}
+        onAlignChange={(align) => onChange('titleAlign', align)}
+        onItalicChange={(value) => onChange('titleItalic', value)}
+        onSizeChange={(size) => onChange('titleSize', size)}
+      />
+
+      <TextGroup
+        align={state.subtitleAlign}
+        contents={[
+          {
+            value: state.subtitle,
+            onChange: (value) => onChange('subtitle', value),
+          },
+        ]}
+        italic={state.subtitleItalic}
+        labelPrefix="Subtitle"
+        size={state.subtitleSize}
+        tones={[
+          {
+            value: state.subtitleTone,
+            onChange: (tone) => onChange('subtitleTone', tone),
+          },
+        ]}
+        onAlignChange={(align) => onChange('subtitleAlign', align)}
+        onItalicChange={(value) => onChange('subtitleItalic', value)}
+        onSizeChange={(size) => onChange('subtitleSize', size)}
+      />
+
+      <ActionBorderGroup
+        showActionBorder={state.showActionBorder}
+        showActionShadow={state.showActionShadow}
+        onShowActionBorderChange={(show) => onChange('showActionBorder', show)}
+        onShowActionShadowChange={(show) => onChange('showActionShadow', show)}
+      />
+    </StyledSettingsForm>
+  );
+}

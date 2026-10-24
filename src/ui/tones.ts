@@ -1,0 +1,222 @@
+/**
+ * Файл: `src/ui/tones.ts`
+ * Определяет канонический набор семантических тонов и утилиты для работы с цветами темы.
+ * Задаёт цветовую роль без привязки к конкретным hex-значениям.
+ *
+ * Основные задачи:
+ * 1. Типизировать канонические тоны через `TonePreset`
+ * 2. Связать тоны с ключами цвета через `TONE_PRESETS`
+ * 3. Задать значение по умолчанию через `DEFAULT_TONE`
+ * 4. Предоставить перечень тонов через `TONE_PRESET_KEYS`
+ * 5. Задать доли смешения `VARIANT_SURFACE_MIX_PERCENT` и `TINTED_KEEP_PERCENT`
+ * 6. Предоставить утилиты `getToneColorKey`, `getToneColor`, `resolveColorMix`,
+ *    `resolveVeilBackground`, `resolvePressedBackground` и `resolvePressedShadow`
+ *
+ * Потребители:
+ *  - `@ui/border` — читает цвет рамки через `getToneColor`
+ *  - контролы, например Toast, Spinner, Switch, ProgressBar и Tag — читают цвет
+ *    темы через `getToneColor`
+ *  - контролы, например Button, Tag, Icon и SegmentButton — читают ключ цвета через
+ *    `getToneColorKey`
+ *  - контролы, например Button, Tag, Icon и Table — смешивают цвета темы через
+ *    `resolveColorMix`
+ *  - `@ui/button` — читает долю смешения `VARIANT_SURFACE_MIX_PERCENT`
+ *  - `@ui/tag` и `@ui/input` — читают долю мягкой заливки `TINTED_KEEP_PERCENT`
+ *  - контролы, например Button, Icon и SegmentButtonParts — читают заливку
+ *    нажатия через `resolvePressedBackground` и тень нажатия через
+ *    `resolvePressedShadow`
+ *  - `@ui/button` — кладёт вуаль поверх непрозрачной нейтральной заливки через
+ *    `resolveVeilBackground`
+ *  - `@ui/text` — расширяет канонический набор тонов
+ *  - `@ui/fieldset` — расширяет канонический набор тонов
+ *  - панели настроек витрины дизайн-системы — передают `TONE_PRESET_KEYS` в
+ *    `ToneListbox`
+ *  - `src/pages/showcase/tone-listbox/index.tsx` — фильтрует тоны и подставляет
+ *    запасной через `DEFAULT_TONE`
+ */
+
+import { type AppTheme, type ThemeColors } from '@ui/theme';
+
+/**
+ * TonePreset — представляет все доступные канонические тона.
+ * Используется как основной тип для пропсов, связанных с цветовыми ролями.
+ */
+export type TonePreset = 'danger' | 'neutral' | 'primary' | 'success' | 'warning';
+
+/**
+ * TONE_PRESETS — связывает канонические тона с ключами цвета в теме.
+ *
+ * Канон включает основные семантические роли:
+ *  - `neutral` — нейтральный тон: у текста и глифа — наследование, у рамок и
+ *    заливок — запасной цвет потребителя
+ *  - `danger`, `success`, `warning` — статусные цвета
+ *  - `primary` — акцентный цвет
+ *
+ * Соответствие экспортируется для расширения спредом в `@ui/text` и `@ui/fieldset`,
+ * чтение цвета — через `getToneColorKey` и `getToneColor`.
+ */
+export const TONE_PRESETS = Object.freeze({
+  danger: 'danger',
+  neutral: undefined,
+  primary: 'primary',
+  success: 'success',
+  warning: 'warning',
+} as const satisfies Record<TonePreset, keyof ThemeColors | undefined>);
+
+/**
+ * TONE_PRESET_KEYS — формирует перечень канонических тонов из ключей `TONE_PRESETS`.
+ * Используется в панелях настроек витрины дизайн-системы: `ToneListbox` принимает его
+ * пропом `tones`.
+ */
+export const TONE_PRESET_KEYS = Object.freeze(Object.keys(TONE_PRESETS) as TonePreset[]);
+
+/**
+ * DEFAULT_TONE — задаёт тон по умолчанию.
+ * Используется, когда вызывающий код не передал проп `tone`, `iconTone` или
+ * `borderTone`.
+ */
+export const DEFAULT_TONE: TonePreset = 'neutral';
+
+/**
+ * getToneColorKey — возвращает ключ цвета в теме для указанного тона.
+ * Для тона по умолчанию возвращает `undefined`.
+ *
+ * @param tone семантический тон
+ * @returns ключ цвета темы или `undefined`
+ */
+export function getToneColorKey(tone: TonePreset): keyof ThemeColors | undefined {
+  return TONE_PRESETS[tone];
+}
+
+/**
+ * getToneColor — возвращает цвет темы для указанного тона.
+ * Для тона с собственным цветом в теме возвращает этот цвет,
+ * для тона по умолчанию — запасной цвет из `fallbackColor`.
+ *
+ * @param theme текущая тема
+ * @param tone семантический тон
+ * @param fallbackColor цвет, который подставляется для тона по умолчанию
+ * @returns цвет темы или `fallbackColor`
+ */
+export function getToneColor(
+  theme: AppTheme,
+  tone: TonePreset,
+  fallbackColor: string
+): string {
+  const colorKey = getToneColorKey(tone);
+
+  return colorKey ? theme.colors[colorKey] : fallbackColor;
+}
+
+/**
+ * SHADE_KEEP_PERCENT — задаёт долю исходного цвета в `resolveColorMix` по умолчанию.
+ * Используется, когда вызывающий код не передал `colorPercent`: сдвиг непрозрачной
+ * цветной заливки к `shade` темы в состояниях `hover` и `active`.
+ */
+const SHADE_KEEP_PERCENT = 80;
+
+/**
+ * BORDER_SURFACE_MIX_PERCENT — задаёт долю `border` в смеси с `surface`.
+ * Используется в `resolvePressedBackground` для нейтральной заливки нажатия.
+ */
+const BORDER_SURFACE_MIX_PERCENT = 40;
+
+/**
+ * VARIANT_SURFACE_MIX_PERCENT — задаёт долю акцентного цвета в смеси с `surface`.
+ * Используется для `active`-заливки нейтральной секции иконки.
+ */
+export const VARIANT_SURFACE_MIX_PERCENT = 12;
+
+/**
+ * TINTED_KEEP_PERCENT — задаёт долю цвета в смеси с `transparent`.
+ * SearchField при `tinted` берёт заливку из `resolveIconStateBackground`.
+ * Используется в `@ui/tag` и `@ui/input` для мягкой заливки.
+ */
+export const TINTED_KEEP_PERCENT = 15;
+
+/**
+ * resolveColorMix — возвращает смесь двух цветов через `color-mix` в пространстве `srgb`.
+ * Единственный способ смешения цветов в компонентах: сдвиг заливки в состояниях —
+ * база `theme.colors.shade`, размывка по поверхности — база `theme.colors.surface`,
+ * тинт — база `transparent`.
+ *
+ * @param color исходный цвет
+ * @param base цвет-база смеси
+ * @param colorPercent доля исходного цвета в процентах, остаток — база.
+ *   Умолчание `SHADE_KEEP_PERCENT` — сдвиг заливки состояния
+ * @returns значение для CSS-свойств `background-color` и `color`
+ */
+export function resolveColorMix(
+  color: string,
+  base: string,
+  colorPercent: number = SHADE_KEEP_PERCENT
+): string {
+  return `color-mix(in srgb, ${color} ${colorPercent}%, ${base})`;
+}
+
+/**
+ * resolveVeilBackground — возвращает значение шортката `background`: вуаль
+ * `theme.colors.veil` слоем `linear-gradient` поверх собственной заливки узла.
+ * Полупрозрачная вуаль не выражается одним `background-color` поверх непрозрачной
+ * заливки, поэтому композиция собирается из слоя-градиента и цвета подложки.
+ *
+ * @param theme текущая тема
+ * @param backgroundColor собственная заливка узла под вуалью
+ * @returns значение для CSS-свойства `background`
+ */
+export function resolveVeilBackground(theme: AppTheme, backgroundColor: string): string {
+  return `linear-gradient(${theme.colors.veil}, ${theme.colors.veil}) ${backgroundColor}`;
+}
+
+/**
+ * LIGHT_COLORED_PRESSED_SHADOW — задаёт внутреннюю тень нажатия цветной поверхности в светлой теме.
+ * Используется в `resolvePressedShadow` для светлой темы и тона с собственным цветом.
+ */
+const LIGHT_COLORED_PRESSED_SHADOW =
+  'inset 0 1px 0 rgb(15 23 42 / 22%), inset 0 2px 4px rgb(15 23 42 / 18%), inset 0 4px 12px rgb(15 23 42 / 16%)';
+
+/**
+ * resolvePressedShadow — возвращает внутреннюю тень нажатия по `tone`.
+ * Цветной тон в светлой теме — `LIGHT_COLORED_PRESSED_SHADOW`. Нейтральный тон
+ * и тёмная тема — `shadow.pressed` текущей темы.
+ *
+ * @param theme текущая тема
+ * @param tone семантический тон поверхности
+ * @returns значение слоя `box-shadow`
+ */
+export function resolvePressedShadow(
+  theme: AppTheme,
+  tone: TonePreset = DEFAULT_TONE
+): string {
+  if (theme.colorScheme === 'light' && getToneColorKey(tone)) {
+    return LIGHT_COLORED_PRESSED_SHADOW;
+  }
+
+  return theme.shadow.pressed;
+}
+
+/**
+ * resolvePressedBackground — возвращает заливку нажатия по `tone`.
+ * Цветной тон — сдвиг к `shade`. Нейтральный — смесь `border` с `surface`
+ * через `BORDER_SURFACE_MIX_PERCENT`.
+ *
+ * @param theme текущая тема
+ * @param tone семантический тон поверхности
+ * @returns значение для CSS-свойств `background` и `background-color`
+ */
+export function resolvePressedBackground(
+  theme: AppTheme,
+  tone: TonePreset = DEFAULT_TONE
+): string {
+  const colorKey = getToneColorKey(tone);
+
+  if (colorKey) {
+    return resolveColorMix(theme.colors[colorKey], theme.colors.shade);
+  }
+
+  return resolveColorMix(
+    theme.colors.border,
+    theme.colors.surface,
+    BORDER_SURFACE_MIX_PERCENT
+  );
+}

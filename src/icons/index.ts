@@ -1,0 +1,42 @@
+/**
+ * Файл: `src/icons/index.ts`
+ * Содержит точку входа набора svg-иконок.
+ *
+ * Основные задачи:
+ * 1. Реэкспортировать компоненты иконок набора
+ *
+ * Потребители:
+ *  - страницы, виджеты и контролы приложения, например Header, Sidebar и SidePanelApp —
+ *    импортируют иконки через `@icons`
+ *  - `src/pages/showcase/showcase-icon-options.tsx` — собирает опции витрины
+ */
+
+export { AddCircleIcon } from './add-circle';
+export { AiIcon } from './ai';
+export { AvatarIcon } from './avatar';
+export { CalendarIcon } from './calendar';
+export { ChatIcon } from './chat';
+export { CheckIcon } from './check';
+export { ChevronDoubleLeftIcon } from './chevron-double-left';
+export { ChevronDoubleRightIcon } from './chevron-double-right';
+export { ChevronDownIcon } from './chevron-down';
+export { ChevronLeftIcon } from './chevron-left';
+export { ChevronRightIcon } from './chevron-right';
+export { ChevronUpIcon } from './chevron-up';
+export { ClockIcon } from './clock';
+export { CloseIcon } from './close';
+export { ContrastIcon } from './contrast';
+export { CopyIcon } from './copy';
+export { DownloadIcon } from './download';
+export { DualIcon } from './dual';
+export { EarthIcon } from './earth';
+export { EpisodeIcon } from './episode';
+export { PaperclipIcon } from './paperclip';
+export { PlusIcon } from './plus';
+export { RoundArrowUpIcon } from './round-arrow-up';
+export { SearchIcon } from './search';
+export { SettingsIcon } from './settings';
+export { SidebarIcon } from './sidebar';
+export { SignOutIcon } from './sign-out';
+export { SubtitlesIcon } from './subtitles';
+export { UploadIcon } from './upload';

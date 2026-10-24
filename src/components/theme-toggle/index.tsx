@@ -1,0 +1,51 @@
+/**
+ * Файл: `src/components/theme-toggle/index.tsx`
+ * Предоставляет компонент ThemeToggle для отображения кнопки переключения светлой и тёмной темы.
+ *
+ * Основные задачи:
+ * 1. Экспортировать компонент ThemeToggle
+ * 2. Выставлять `aria-label` по текущей теме
+ * 3. Связать `Icon` с `useTheme`
+ *
+ * Потребители:
+ *  - `src/components/header/index.tsx` — показывает кнопку переключения темы в блоке действий шапки
+ */
+
+import { useTheme } from '@hooks/use-theme';
+import { ContrastIcon } from '@icons';
+import { Icon } from '@ui/icon';
+
+/**
+ * SWITCH_TO_DARK_ARIA_LABEL — задаёт текст `aria-label` для перехода на тёмную тему.
+ * Используется как доступное имя кнопки, когда активна светлая тема.
+ */
+const SWITCH_TO_DARK_ARIA_LABEL = 'Switch to dark theme';
+
+/**
+ * SWITCH_TO_LIGHT_ARIA_LABEL — задаёт текст `aria-label` для перехода на светлую тему.
+ * Используется как доступное имя кнопки, когда активна тёмная тема.
+ */
+const SWITCH_TO_LIGHT_ARIA_LABEL = 'Switch to light theme';
+
+/**
+ * ThemeToggle — отображает кнопку переключения темы приложения.
+ *
+ * @example
+ * <ThemeToggle />
+ */
+export function ThemeToggle() {
+  const { mode, onThemeChange } = useTheme();
+
+  return (
+    <Icon
+      aria-label={
+        mode === 'dark' ? SWITCH_TO_LIGHT_ARIA_LABEL : SWITCH_TO_DARK_ARIA_LABEL
+      }
+      as="button"
+      shape="round"
+      onClick={onThemeChange}
+    >
+      <ContrastIcon />
+    </Icon>
+  );
+}

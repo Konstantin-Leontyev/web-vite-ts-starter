@@ -1,0 +1,90 @@
+/**
+ * Файл: `src/ui/field-label/index.tsx`
+ * Предоставляет компонент FieldLabel для отображения подписи поля.
+ *
+ * Поддерживает:
+ *  - layout-пропсы: отступы, позиционирование, размеры
+ *  - содержимое через `children`. Без `children` подпись не отображается
+ *  - связь с контролом через проп `htmlFor`
+ *  - идентификатор подписи через проп `id`
+ *
+ * Основные задачи:
+ * 1. Экспортировать компонент FieldLabel
+ * 2. Типизировать пропсы через `FieldLabelProps`
+ * 3. Фиксировать типографику подписи и корневой элемент `label`
+ *
+ * Потребители:
+ *  - контролы, например Input, Listbox, RangeInput, Button, SegmentButton,
+ *    DateRangeInput и Stepper — рендерят подпись поля
+ */
+
+import {
+  Text,
+  type TextProps,
+  type TextSizePreset,
+  type TextTonePreset,
+} from '@ui/text';
+
+/**
+ * FIELD_LABEL_SIZE_PRESET — задаёт типографический пресет подписи поля.
+ * Размер вшит в FieldLabel, вызывающий код его не переопределяет.
+ */
+const FIELD_LABEL_SIZE_PRESET: TextSizePreset = 'thin';
+
+/**
+ * FIELD_LABEL_TEXT_TONE — задаёт тон текста подписи поля.
+ * Подпись поля — вторичный текст, поэтому `muted`.
+ */
+const FIELD_LABEL_TEXT_TONE: TextTonePreset = 'muted';
+
+/**
+ * FieldLabelProps — представляет пропсы компонента FieldLabel.
+ *
+ * @property htmlFor — id связанного контрола
+ */
+type FieldLabelProps = {
+  htmlFor?: string;
+} & Omit<
+  TextProps<'label'>,
+  | 'align'
+  | 'as'
+  | 'className'
+  | 'color'
+  | 'ellipsis'
+  | 'fontSize'
+  | 'fontWeight'
+  | 'htmlFor'
+  | 'italic'
+  | 'lineHeight'
+  | 'size'
+  | 'style'
+  | 'tone'
+  | 'whiteSpace'
+>;
+
+/**
+ * FieldLabel — отображает подпись поля.
+ *
+ * @example
+ * <FieldLabel htmlFor={buttonId}>{label}</FieldLabel>
+ * <FieldLabel id={labelId}>{label}</FieldLabel>
+ */
+function FieldLabel({ children, htmlFor, ...rest }: FieldLabelProps) {
+  if (!children) {
+    return null;
+  }
+
+  return (
+    <Text
+      as="label"
+      htmlFor={htmlFor}
+      size={FIELD_LABEL_SIZE_PRESET}
+      tone={FIELD_LABEL_TEXT_TONE}
+      {...rest}
+    >
+      {children}
+    </Text>
+  );
+}
+
+export { FieldLabel };
