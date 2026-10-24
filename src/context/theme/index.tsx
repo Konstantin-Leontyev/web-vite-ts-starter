@@ -13,7 +13,6 @@
  *
  * Потребители:
  *  - `src/main.tsx` — оборачивает приложение провайдером
- *  - `src/side-panel/main.tsx` — оборачивает страницу `chrome.sidePanel` провайдером
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
