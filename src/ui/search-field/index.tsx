@@ -35,8 +35,9 @@
  * 2. Типизировать пропсы через `SearchFieldProps`
  * 3. Экспортировать тип `SearchFieldIconProps` и функцию
  *    `resolveSearchFieldIconProps`
- * 4. Экспортировать пакеты `ShowSearchFieldBorderProps` и `ShowSearchFieldIconProps`
- *    и функции `resolveSearchFieldBorderProps` и `resolveShowSearchFieldIconProps`
+ * 4. Экспортировать пакеты `ShowSearchFieldBorderProps`, `ShowSearchFieldClearProps`
+ *    и `ShowSearchFieldIconProps` и функции `resolveSearchFieldBorderProps`,
+ *    `resolveShowSearchFieldClearProps` и `resolveShowSearchFieldIconProps`
  * 5. Экспортировать дефолты `DEFAULT_SEARCH_FIELD_ICON_POSITION`,
  *    `DEFAULT_SEARCH_FIELD_PLACEHOLDER`, `DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON`
  *    и `DEFAULT_SEARCH_FIELD_SHOW_OUTLINE`
@@ -153,6 +154,46 @@ function resolveSearchFieldBorderProps(
   return showSearchFieldBorder
     ? { searchFieldBorderTone, showSearchFieldBorder: true, showSearchFieldShadow }
     : { showSearchFieldBorder: false };
+}
+
+/**
+ * ShowSearchFieldClearProps — представляет пропсы кнопки сброса вложенного поля поиска.
+ * Имя сброса допустимо, пока кнопка не выключена явно. Без пропа кнопка есть.
+ * Подключается локально через `& ShowSearchFieldClearProps` у Listbox и Toolbar.
+ *
+ * @property searchClearAriaLabel — доступное имя кнопки сброса поля поиска.
+ *   Без пропа — `Clear search`. Пустая строка остаётся этой фразой.
+ *   При `showSearchFieldClearButton={false}` не собирается
+ * @property showSearchFieldClearButton — включает кнопку сброса поля поиска.
+ *   Без пропа сброс есть
+ */
+type ShowSearchFieldClearProps =
+  | {
+      searchClearAriaLabel?: never;
+      showSearchFieldClearButton: false;
+    }
+  | {
+      searchClearAriaLabel?: string;
+      showSearchFieldClearButton?: true;
+    };
+
+/**
+ * resolveShowSearchFieldClearProps — возвращает пакет пропсов кнопки сброса вложенного поля поиска.
+ * При включённом сбросе отдаёт `showSearchFieldClearButton` вместе с именем, иначе гасит
+ * зависимое поле. Результат подходит к `ShowSearchFieldClearProps`.
+ * Используется в `src/pages/showcase`.
+ *
+ * @param showSearchFieldClearButton включает кнопку сброса поля поиска
+ * @param searchClearAriaLabel доступное имя кнопки сброса при включённом сбросе
+ * @returns пакет пропсов кнопки сброса для передачи в Listbox или Toolbar
+ */
+function resolveShowSearchFieldClearProps(
+  showSearchFieldClearButton: boolean,
+  searchClearAriaLabel?: string
+): ShowSearchFieldClearProps {
+  return showSearchFieldClearButton
+    ? { searchClearAriaLabel, showSearchFieldClearButton: true }
+    : { showSearchFieldClearButton: false };
 }
 
 /**
@@ -435,8 +476,10 @@ export {
   SearchField,
   resolveSearchFieldBorderProps,
   resolveSearchFieldIconProps,
+  resolveShowSearchFieldClearProps,
   resolveShowSearchFieldIconProps,
   type SearchFieldIconProps,
   type ShowSearchFieldBorderProps,
+  type ShowSearchFieldClearProps,
   type ShowSearchFieldIconProps,
 };

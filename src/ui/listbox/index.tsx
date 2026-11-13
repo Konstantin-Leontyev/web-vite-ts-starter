@@ -54,6 +54,9 @@
  *    отдельным пропом `iconTone` на поле не передаётся
  *  - кнопку сброса поля поиска через проп `showSearchFieldClearButton`. Без пропа
  *    поле само показывает сброс
+ *  - доступное имя кнопки сброса поля поиска через проп `searchClearAriaLabel`.
+ *    Без пропа — `Clear search`. Пустая строка остаётся этой фразой. Без поиска
+ *    и при выключенном сбросе не собирается
  *  - контролируемое значение через проп `value`
  *  - опциональный сброс выбора через проп `showClearButton`. Только у вида `field`.
  *    Базовая логика — шеврон. Кнопка сброса появляется при выборе, только когда
@@ -132,6 +135,7 @@ import {
   SearchField,
   resolveSearchFieldIconProps,
   type ShowSearchFieldBorderProps,
+  type ShowSearchFieldClearProps,
   type ShowSearchFieldIconProps,
 } from '@ui/search-field';
 import { Text } from '@ui/text';
@@ -245,6 +249,12 @@ export const DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON = false;
 const DEFAULT_LISTBOX_CLEAR_ARIA_LABEL = 'Clear selection';
 
 /**
+ * DEFAULT_LISTBOX_SEARCH_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса поля поиска по умолчанию.
+ * Используется, когда вызывающий код не передал проп `searchClearAriaLabel`.
+ */
+const DEFAULT_LISTBOX_SEARCH_CLEAR_ARIA_LABEL = 'Clear search';
+
+/**
  * DEFAULT_LISTBOX_SHOW_SEARCH — задаёт режим поиска по умолчанию.
  * Используется, когда вызывающий код не передал проп `showSearchField`.
  */
@@ -353,6 +363,9 @@ export type ListboxAppearanceProps =
  *
  * @property emptyMessage — текст при пустом результате поиска. Без поиска
  *   и при `showSearchField={false}` не собирается
+ * @property searchClearAriaLabel — доступное имя кнопки сброса поля поиска.
+ *   Без пропа — `Clear search`. Пустая строка остаётся этой фразой.
+ *   Без поиска и при `showSearchFieldClearButton={false}` не собирается
  * @property searchDisabled — включает недоступное состояние поля поиска
  * @property searchPlaceholder — плейсхолдер поля поиска
  * @property searchShape — форма поля поиска. Без пропа берётся форма списка
@@ -366,6 +379,7 @@ export type ListboxAppearanceProps =
 export type ListboxSearchProps =
   | {
       emptyMessage?: never;
+      searchClearAriaLabel?: never;
       searchDisabled?: never;
       searchFieldBorderTone?: never;
       searchFieldIcon?: never;
@@ -390,10 +404,10 @@ export type ListboxSearchProps =
       searchShape?: ShapePreset;
       searchSize?: SizePreset;
       showSearchField: true;
-      showSearchFieldClearButton?: boolean;
       showSearchFieldOutline?: boolean;
       tinted?: boolean;
     } & ShowSearchFieldBorderProps &
+      ShowSearchFieldClearProps &
       ShowSearchFieldIconProps);
 
 /**
@@ -675,6 +689,7 @@ export function Listbox({
   onChange,
   options,
   placeholder = DEFAULT_LISTBOX_PLACEHOLDER,
+  searchClearAriaLabel,
   searchDisabled = DEFAULT_LISTBOX_SEARCH_DISABLED,
   searchFieldBorderTone,
   searchFieldIcon,
@@ -1190,10 +1205,14 @@ export function Listbox({
     searchFieldIconPosition,
     searchFieldIconTone
   );
+  const searchClearName =
+    searchClearAriaLabel !== undefined && searchClearAriaLabel.trim() !== ''
+      ? searchClearAriaLabel
+      : DEFAULT_LISTBOX_SEARCH_CLEAR_ARIA_LABEL;
   const searchFieldClearProps: ClearProps =
     showSearchFieldClearButton === undefined
-      ? {}
-      : resolveClearProps(showSearchFieldClearButton);
+      ? { clearAriaLabel: searchClearName }
+      : resolveClearProps(showSearchFieldClearButton, searchClearName);
 
   const searchPanel = (
     <StyledListboxSearchPanel

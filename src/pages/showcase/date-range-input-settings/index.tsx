@@ -3,7 +3,7 @@
  * Определяет панель настроек компонента DateRangeInput в витрине дизайн-системы.
  * Содержит контролы для изменения подписи, размера, формы, тона рамки,
  * показа сброса, формы подсветки дня, формы кнопок подвала, текстов `Set`,
- * `Reset` и `Close`, подписей дней недели, границ дней и состояния `disabled`
+ * `Reset` и `Close`, локали, подписей дней недели, границ дней и состояния `disabled`
  * в реальном времени. Сброс стартует выключенным.
  *
  * Основные задачи:
@@ -18,10 +18,12 @@ import { type ChangeEvent } from 'react';
 
 import { Checkbox } from '@ui/checkbox';
 import {
-  DEFAULT_CALENDAR_WEEKDAY_LABELS,
+  DEFAULT_CALENDAR_LOCALE,
   DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
   DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
   DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
+  resolveCalendarLocale,
+  resolveCalendarWeekdayLabels,
   type CalendarWeekdayLabels,
 } from '@ui/date-range-input';
 import { Input } from '@ui/input';
@@ -50,17 +52,19 @@ const WEEKDAY_LABEL_PREFIXES = [
 
 /**
  * DateRangeInputWidgetState — представляет состояние настроек компонента DateRangeInput в витрине дизайн-системы.
- * Ключи совпадают с именами пропов компонента DateRangeInput.
+ * Ключи совпадают с именами пропов компонента DateRangeInput, кроме витринных ключей: `withClear`
+ * управляет передачей `onClear` в превью.
  * Используется для синхронизации значений между панелью управления и демонстрационным DateRangeInput.
  *
  * @property borderTone — тон рамки
  * @property buttonShape — форма кнопок подвала панели. Стартует с формы контрола
  * @property commitLabel — видимый текст кнопки подтверждения
  * @property dayShape — форма подсветки дня в панели. Стартует с формы контрола
- * @property dismissLabel — видимый текст кнопки закрытия панели
  * @property disabled — включает недоступное состояние
+ * @property dismissLabel — видимый текст кнопки закрытия панели
  * @property endDay — буфер конечного дня диапазона в превью. В панель не выносится
  * @property label — подпись над рядом сегментов
+ * @property locale — локаль оформления даты
  * @property maxDay — верхняя граница допустимых дней в формате ISO
  * @property minDay — нижняя граница допустимых дней в формате ISO
  * @property resetLabel — видимый текст кнопки сброса черновика
@@ -68,8 +72,7 @@ const WEEKDAY_LABEL_PREFIXES = [
  * @property size — размер компонента
  * @property startDay — буфер начального дня диапазона в превью. В панель не выносится
  * @property weekdayLabels — подписи дней недели с понедельника по воскресенье
- * @property withClear — витринный ключ показа сброса. Стартует выключенным:
- *   превью без `onClear`
+ * @property withClear — витринный ключ показа сброса. Выключенный — превью без `onClear`
  */
 export type DateRangeInputWidgetState = {
   borderTone: TonePreset;
@@ -80,6 +83,7 @@ export type DateRangeInputWidgetState = {
   dismissLabel: string;
   endDay: string;
   label: string;
+  locale: string;
   maxDay: string;
   minDay: string;
   resetLabel: string;
@@ -190,11 +194,39 @@ export function DateRangeInputSettings({
         labelPrefix="Close text"
       />
 
+      <TextGroup
+        contents={[
+          {
+            boxedString: DEFAULT_CALENDAR_LOCALE,
+            value: state.locale,
+            onChange: (value) => {
+              const previousLocale = resolveCalendarLocale(state.locale);
+              const previousLabels = resolveCalendarWeekdayLabels(previousLocale);
+              const followsLocale = state.weekdayLabels.every(
+                (label, index) => label === previousLabels[index]
+              );
+
+              onChange('locale', value);
+
+              if (followsLocale) {
+                onChange(
+                  'weekdayLabels',
+                  resolveCalendarWeekdayLabels(resolveCalendarLocale(value))
+                );
+              }
+            },
+          },
+        ]}
+        labelPrefix="Locale"
+      />
+
       {WEEKDAY_LABEL_PREFIXES.map((prefix, index) => (
         <TextGroup
           contents={[
             {
-              boxedString: DEFAULT_CALENDAR_WEEKDAY_LABELS[index],
+              boxedString: resolveCalendarWeekdayLabels(
+                resolveCalendarLocale(state.locale)
+              )[index],
               value: state.weekdayLabels[index],
               onChange: (value) => {
                 const next = [...state.weekdayLabels] as [

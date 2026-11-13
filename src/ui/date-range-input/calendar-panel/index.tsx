@@ -27,14 +27,20 @@
  *    `Next month`. Пустая строка остаётся этой фразой
  *  - доступное имя кнопки «год вперёд» через проп `nextYearAriaLabel`. Без пропа —
  *    `Next year`. Пустая строка остаётся этой фразой
- *  - подписи дней недели через проп `weekdayLabels`. Без пропа — `Mon` … `Sun`.
- *    Пустая строка дня прячет видимую подпись, доступное имя остаётся умолчанием этого дня
+ *  - локаль оформления даты через проп `locale`. Без пропа — `en-US`.
+ *    Пустая строка, пробелы и неразбираемая метка остаются этой локалью
+ *  - подписи дней недели через проп `weekdayLabels`. Без пропа подписи берутся
+ *    из локали: у `en-US` это `Mon` … `Sun`. Переданные подписи сильнее локали.
+ *    Пустая строка дня прячет видимую подпись, доступное имя остаётся подписью
+ *    этого дня в локали
  *
  * Основные задачи:
  * 1. Экспортировать компонент CalendarPanel
  * 2. Типизировать пропсы через `CalendarPanelProps`
- * 3. Реэкспортировать утилиты дат и тип `MonthView` из
- *    `src/ui/date-range-input/calendar-panel/day.ts`
+ * 3. Реэкспортировать утилиты дат, `DEFAULT_CALENDAR_LOCALE`,
+ *    `DEFAULT_CALENDAR_WEEKDAY_LABELS`, `resolveCalendarLocale`,
+ *    `resolveCalendarWeekdayLabels` и типы `MonthView` и `CalendarWeekdayLabels`
+ *    из `src/ui/date-range-input/calendar-panel/day.ts`
  * 4. Выставлять роли сетки `grid`, `row`, `columnheader` и `gridcell` и
  *    `aria`-атрибуты навигации и кнопок дней. Стрелки месяца и сетка дней —
  *    две Tab-остановки с roving focus внутри. Сегодняшний день помечает
@@ -92,6 +98,8 @@ import {
   isIsoDayBetweenRange,
   isIsoDayInBounds,
   monthViewFromIsoDay,
+  resolveCalendarLocale,
+  resolveCalendarWeekdayLabels,
   todayUtc,
   type CalendarWeekdayLabels,
   type MonthView,
@@ -130,6 +138,9 @@ const CALENDAR_WEEK_LENGTH = DEFAULT_CALENDAR_WEEKDAY_LABELS.length;
  * CalendarPanelProps — представляет пропсы компонента CalendarPanel.
  *
  * @property firstAvailableDayRef — ссылка на первый доступный день
+ * @property locale — локаль оформления заголовка месяца, имени дня и подписей
+ *   дней недели. Без пропа — `en-US`. Пустая строка, пробелы и неразбираемая метка
+ *   остаются этой локалью
  * @property maxDay — верхняя граница допустимых дней в формате ISO
  * @property minDay — нижняя граница допустимых дней в формате ISO
  * @property nextMonthAriaLabel — доступное имя кнопки «месяц вперёд». Без пропа —
@@ -149,11 +160,13 @@ const CALENDAR_WEEK_LENGTH = DEFAULT_CALENDAR_WEEKDAY_LABELS.length;
  * @property todayDayRef — ссылка на сегодняшний доступный день
  * @property viewMonth — отображаемый месяц панели
  * @property weekdayLabels — подписи дней недели с понедельника по воскресенье.
- *   Без пропа — `Mon` … `Sun`. Пустая строка дня прячет видимую подпись,
- *   доступное имя остаётся умолчанием этого дня
+ *   Без пропа подписи берутся из локали. Переданные подписи сильнее.
+ *   Пустая строка дня прячет видимую подпись, доступное имя остаётся подписью
+ *   этого дня в локали
  */
 type CalendarPanelProps = CalendarPanelStyleProps & {
   firstAvailableDayRef?: Ref<HTMLButtonElement | null>;
+  locale?: string;
   maxDay?: string;
   minDay?: string;
   nextMonthAriaLabel?: string;
@@ -262,6 +275,7 @@ function chunkWeeks<T>(cells: T[]): T[][] {
 export function CalendarPanel({
   dayShape,
   firstAvailableDayRef,
+  locale,
   maxDay,
   minDay,
   nextMonthAriaLabel,
@@ -278,10 +292,13 @@ export function CalendarPanel({
   size,
   todayDayRef,
   viewMonth,
-  weekdayLabels = DEFAULT_CALENDAR_WEEKDAY_LABELS,
+  weekdayLabels,
   ...rest
 }: CalendarPanelProps) {
   const { layoutProps } = splitLayoutProps(rest);
+  const resolvedLocale = resolveCalendarLocale(locale);
+  const localeWeekdayLabels = resolveCalendarWeekdayLabels(resolvedLocale);
+  const resolvedWeekdayLabels = weekdayLabels ?? localeWeekdayLabels;
   const monthTitleId = useId();
   const cells = buildMonthGrid(viewMonth);
   const weeks = chunkWeeks(cells);
@@ -597,7 +614,7 @@ export function CalendarPanel({
             size={textSizePreset}
             whiteSpace="normal"
           >
-            {formatMonthTitle(viewMonth)}
+            {formatMonthTitle(viewMonth, resolvedLocale)}
           </Text>
         </StyledCalendarMonthTitle>
         <StyledCalendarNavButton
@@ -658,8 +675,8 @@ export function CalendarPanel({
 
       <StyledCalendarGrid aria-labelledby={monthTitleId} role="grid">
         <StyledCalendarWeekdayRow role="row">
-          {weekdayLabels.map((label, index) => {
-            const fallback = DEFAULT_CALENDAR_WEEKDAY_LABELS[index];
+          {resolvedWeekdayLabels.map((label, index) => {
+            const fallback = localeWeekdayLabels[index];
             const visibleLabel = label.trim() === '' ? undefined : label;
 
             return (
@@ -716,7 +733,7 @@ export function CalendarPanel({
                   role="gridcell"
                 >
                   <StyledCalendarDayButton
-                    aria-label={formatIsoDayAccessible(cell.isoDay)}
+                    aria-label={formatIsoDayAccessible(cell.isoDay, resolvedLocale)}
                     data-adjacent={isAdjacentPast ? 'true' : undefined}
                     data-in-range={isInRange ? 'true' : undefined}
                     data-selected={isSelected ? 'true' : undefined}
@@ -771,10 +788,13 @@ export function CalendarPanel({
 
 export {
   DATE_PLACEHOLDER,
+  DEFAULT_CALENDAR_LOCALE,
   DEFAULT_CALENDAR_WEEKDAY_LABELS,
   formatIsoDayCompact,
   isIsoDayAfter,
   monthViewFromIsoDayOrToday,
+  resolveCalendarLocale,
+  resolveCalendarWeekdayLabels,
   todayUtc,
   type CalendarWeekdayLabels,
   type MonthView,

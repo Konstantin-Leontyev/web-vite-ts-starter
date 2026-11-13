@@ -30,11 +30,14 @@ import { Button, type ButtonIconProps } from '@ui/button';
 import { CARD_HEADER_ACTION_SIZE_PRESET, Card } from '@ui/card';
 import { Checkbox } from '@ui/checkbox';
 import {
+  DEFAULT_CALENDAR_LOCALE,
   DEFAULT_CALENDAR_WEEKDAY_LABELS,
   DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
   DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
   DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
   DateRangeInput,
+  resolveCalendarLocale,
+  resolveCalendarWeekdayLabels,
   todayUtc,
 } from '@ui/date-range-input';
 import { resolveClearProps, type ClearProps } from '@ui/field-clear';
@@ -92,6 +95,7 @@ import {
   SearchField,
   resolveSearchFieldBorderProps,
   resolveSearchFieldIconProps,
+  resolveShowSearchFieldClearProps,
   resolveShowSearchFieldIconProps,
   type SearchFieldIconProps,
 } from '@ui/search-field';
@@ -227,12 +231,14 @@ const DEMO_MODAL_BODY_TEXT = 'Place your content here';
 
 /**
  * DEMO_MODAL_CARD_SUBTITLE — задаёт подзаголовок карточки Modal в витрине.
+ * Длина как у подзаголовка карточки Toast, чтобы шапки были одной высоты.
  */
 const DEMO_MODAL_CARD_SUBTITLE =
   'Places a dialog over the page and holds focus there until you dismiss it';
 
 /**
  * DEMO_TOAST_CARD_SUBTITLE — задаёт подзаголовок карточки Toast в витрине.
+ * Длина как у подзаголовка карточки Modal, чтобы шапки были одной высоты.
  */
 const DEMO_TOAST_CARD_SUBTITLE =
   'Shows a brief notice over the page, then leaves on its own after a while';
@@ -715,6 +721,7 @@ const DEFAULT_DATE_RANGE_INPUT_STATE: DateRangeInputWidgetState = {
   dismissLabel: DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
   endDay: '',
   label: 'Label:',
+  locale: DEFAULT_CALENDAR_LOCALE,
   maxDay: todayUtc(),
   minDay: '',
   resetLabel: DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
@@ -1213,7 +1220,8 @@ function resolveListboxAppearanceProps(
  * Как работает:
  * 1. Без `showSearchField` отдаёт только выключенный поиск
  * 2. С поиском отдаёт форму, рамку, заливку, плейсхолдер, иконку и сброс поля.
- *    Рамку собирает `resolveSearchFieldBorderProps`, иконку — `resolveShowSearchFieldIconProps`
+ *    Рамку собирает `resolveSearchFieldBorderProps`, иконку —
+ *    `resolveShowSearchFieldIconProps`, сброс — `resolveShowSearchFieldClearProps`
  *
  * @param state поля поиска виджета Listbox или Toolbar
  * @returns пропсы поля поиска
@@ -1264,12 +1272,12 @@ function resolveSearchProps(
     searchPlaceholder:
       state.searchPlaceholder.trim() !== '' ? state.searchPlaceholder : undefined,
     searchShape: state.searchShape,
-    showSearchFieldClearButton: state.showSearchFieldClearButton,
     showSearchFieldOutline: state.showSearchFieldOutline,
     searchSize: state.searchSize,
     showSearchField: true as const,
     tinted: state.tinted,
     ...searchBorderProps,
+    ...resolveShowSearchFieldClearProps(state.showSearchFieldClearButton),
     ...searchIconProps,
   } satisfies ListboxSearchProps;
 }
@@ -1323,10 +1331,17 @@ function resolveToolbarPreviewSearchProps(state: ToolbarWidgetState) {
  * <ShowcasePage />
  */
 export function ShowcasePage() {
-  // autoHide шапки живёт в каркасе. Витрина даёт только тумблер, см. src/pages/showcase/header-settings/index.tsx.
+  // autoHide шапки и тексты меню профиля живут в каркасе.
+  // Витрина даёт тумблер и поля этих текстов, см. src/pages/showcase/header-settings/index.tsx.
   const { showToast } = useToast();
-  const { autoHide, isHeaderSettingsOpen, setAutoHide, setIsHeaderSettingsOpen } =
-    useShellOutletContext();
+  const {
+    autoHide,
+    isHeaderSettingsOpen,
+    profileMenuText,
+    setAutoHide,
+    setIsHeaderSettingsOpen,
+    setProfileMenuText,
+  } = useShellOutletContext();
   const [activeSettings, setActiveSettings] = useState<null | WidgetSettingsKey>(null);
   const [input, setInput] = useState<InputWidgetState>(DEFAULT_INPUT_STATE);
   const [searchField, setSearchField] = useState<SearchFieldWidgetState>(
@@ -1810,28 +1825,30 @@ export function ShowcasePage() {
     rating.title.trim() !== ''
       ? { title: rating.title, titleInline: rating.titleInline }
       : { titleInline: rating.titleInline };
-  // Пустое поле панели не стирает день: в календарь уходит слово по умолчанию.
+  // Пустое поле панели не стирает день: в календарь уходит подпись этого дня в локали.
+  const dateRangeLocale = resolveCalendarLocale(dateRangeInput.locale);
+  const dateRangeLocaleWeekdays = resolveCalendarWeekdayLabels(dateRangeLocale);
   const dateRangeWeekdayLabels = [
     dateRangeInput.weekdayLabels[0].trim() === ''
-      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[0]
+      ? dateRangeLocaleWeekdays[0]
       : dateRangeInput.weekdayLabels[0],
     dateRangeInput.weekdayLabels[1].trim() === ''
-      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[1]
+      ? dateRangeLocaleWeekdays[1]
       : dateRangeInput.weekdayLabels[1],
     dateRangeInput.weekdayLabels[2].trim() === ''
-      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[2]
+      ? dateRangeLocaleWeekdays[2]
       : dateRangeInput.weekdayLabels[2],
     dateRangeInput.weekdayLabels[3].trim() === ''
-      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[3]
+      ? dateRangeLocaleWeekdays[3]
       : dateRangeInput.weekdayLabels[3],
     dateRangeInput.weekdayLabels[4].trim() === ''
-      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[4]
+      ? dateRangeLocaleWeekdays[4]
       : dateRangeInput.weekdayLabels[4],
     dateRangeInput.weekdayLabels[5].trim() === ''
-      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[5]
+      ? dateRangeLocaleWeekdays[5]
       : dateRangeInput.weekdayLabels[5],
     dateRangeInput.weekdayLabels[6].trim() === ''
-      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[6]
+      ? dateRangeLocaleWeekdays[6]
       : dateRangeInput.weekdayLabels[6],
   ] as const;
   const textDemoChildren = resolveTextDemoChildren(
@@ -2051,7 +2068,12 @@ export function ShowcasePage() {
         sidebarContent={
           <ScrollPort paddingBlockEnd={4}>
             {(isHeaderSettingsOpen && (
-              <HeaderSettings autoHide={autoHide} onChange={setAutoHide} />
+              <HeaderSettings
+                autoHide={autoHide}
+                profileMenuText={profileMenuText}
+                onChange={setAutoHide}
+                onProfileMenuTextChange={setProfileMenuText}
+              />
             )) ||
               renderSettingsPanel()}
           </ScrollPort>
@@ -2372,6 +2394,11 @@ export function ShowcasePage() {
                   dismissLabel={dateRangeInput.dismissLabel || undefined}
                   endDay={dateRangeInput.endDay}
                   label={dateRangeInput.label || undefined}
+                  locale={
+                    dateRangeInput.locale.trim() !== ''
+                      ? dateRangeInput.locale
+                      : undefined
+                  }
                   maxDay={dateRangeInput.maxDay || undefined}
                   minDay={dateRangeInput.minDay || undefined}
                   resetLabel={dateRangeInput.resetLabel || undefined}

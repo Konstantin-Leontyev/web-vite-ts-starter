@@ -54,7 +54,7 @@ type ThemeToggleProps = {
  * @example
  * <ThemeToggle />
  */
-export function ThemeToggle({ darkAriaLabel, lightAriaLabel }: ThemeToggleProps) {
+function ThemeToggle({ darkAriaLabel, lightAriaLabel }: ThemeToggleProps) {
   const { mode, onThemeChange } = useTheme();
   const darkName =
     darkAriaLabel !== undefined && darkAriaLabel.trim() !== ''
@@ -76,3 +76,5 @@ export function ThemeToggle({ darkAriaLabel, lightAriaLabel }: ThemeToggleProps)
     </Icon>
   );
 }
+
+export { ThemeToggle, type ThemeToggleProps };

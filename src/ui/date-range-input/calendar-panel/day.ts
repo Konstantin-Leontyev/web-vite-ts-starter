@@ -3,15 +3,17 @@
  * Содержит утилиты дат и построения сетки месяца для панели календаря.
  *
  * Основные задачи:
- * 1. Типизировать вид месяца через `MonthView`
- * 2. Предоставить константы `DATE_PLACEHOLDER` и `DEFAULT_CALENDAR_WEEKDAY_LABELS`
+ * 1. Типизировать вид месяца через `MonthView` и подписи дней недели через `CalendarWeekdayLabels`
+ * 2. Предоставить константы `DATE_PLACEHOLDER`, `DEFAULT_CALENDAR_LOCALE`
+ *    и `DEFAULT_CALENDAR_WEEKDAY_LABELS`
  * 3. Предоставить `todayUtc`, `formatIsoDayCompact`, `formatIsoDayAccessible`,
  *    `isIsoDayAfter`, `isIsoDayBetweenRange`, `isIsoDayInBounds`,
  *    `monthViewFromIsoDay` и `clampIsoDayInBounds`
  * 4. Предоставить `monthViewFromIsoDayOrToday`, `addMonths`, `addYears`,
  *    `addDaysToIsoDay`, `addMonthsToIsoDay`, `addYearsToIsoDay`,
- *    `formatMonthTitle`, `buildMonthGrid`, `canNavigateMonthPrevious`,
- *    `canNavigateMonthNext`, `canNavigateYearPrevious` и `canNavigateYearNext`
+ *    `formatMonthTitle`, `resolveCalendarLocale`, `resolveCalendarWeekdayLabels`,
+ *    `buildMonthGrid`, `canNavigateMonthPrevious`, `canNavigateMonthNext`,
+ *    `canNavigateYearPrevious` и `canNavigateYearNext`
  *
  * Потребители:
  *  - `src/ui/date-range-input/calendar-panel/index.tsx` — собирает сетку, навигацию
@@ -23,6 +25,18 @@
  * Используется в триггерах DateRangeInput при пустом значении.
  */
 export const DATE_PLACEHOLDER = 'DD.MM.YY';
+
+/**
+ * DEFAULT_CALENDAR_LOCALE — задаёт локаль оформления даты по умолчанию.
+ * Используется, когда вызывающий код не передал проп `locale`.
+ */
+export const DEFAULT_CALENDAR_LOCALE = 'en-US';
+
+/**
+ * CALENDAR_WEEK_MONDAY_UTC — задаёт понедельник, от которого считаются подписи дней недели.
+ * 1 января 2024 года — понедельник. Сдвиг на 0–6 даёт неделю с понедельника.
+ */
+const CALENDAR_WEEK_MONDAY_UTC = Date.UTC(2024, 0, 1);
 
 /**
  * IsoDayParts — представляет разобранный календарный день.
@@ -90,9 +104,10 @@ export function formatIsoDayCompact(isoDay: string): string {
  * При неразбираемой строке возвращает исходное значение без изменений.
  *
  * @param isoDay день в формате ISO
- * @returns дата вида `Monday, August 19, 2026` в локали `en-US`
+ * @param locale локаль оформления
+ * @returns дата вида `Monday, August 19, 2026` в переданной локали
  */
-export function formatIsoDayAccessible(isoDay: string): string {
+export function formatIsoDayAccessible(isoDay: string, locale: string): string {
   const parts = parseIsoDay(isoDay);
 
   if (parts == null) {
@@ -101,7 +116,7 @@ export function formatIsoDayAccessible(isoDay: string): string {
 
   const date = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     timeZone: 'UTC',
@@ -430,28 +445,68 @@ function weekdayMondayFirst(view: MonthView, day: number): number {
 }
 
 /**
- * formatMonthName — возвращает локализованное имя месяца для шапки панели.
+ * formatMonthTitle — возвращает заголовок месяца и года одной строкой.
  *
  * @param view вид месяца
- * @returns строка вида `July` в локали `en-US`
+ * @param locale локаль оформления
+ * @returns строка вида `July 2026` в переданной локали
  */
-function formatMonthName(view: MonthView): string {
+export function formatMonthTitle(view: MonthView, locale: string): string {
   const date = new Date(Date.UTC(view.year, view.month - 1, 1));
 
-  return new Intl.DateTimeFormat('en-US', {
+  return new Intl.DateTimeFormat(locale, {
     month: 'long',
     timeZone: 'UTC',
+    year: 'numeric',
   }).format(date);
 }
 
 /**
- * formatMonthTitle — возвращает локализованный заголовок месяца и года одной строкой.
+ * resolveCalendarLocale — возвращает локаль оформления даты.
+ * Пустая строка, пробелы и неразбираемая метка остаются английской локалью.
  *
- * @param view вид месяца
- * @returns строка вида `July 2026` в локали `en-US`
+ * @param locale проп `locale`
+ * @returns метка локали для `Intl.DateTimeFormat`
  */
-export function formatMonthTitle(view: MonthView): string {
-  return `${formatMonthName(view)} ${view.year}`;
+export function resolveCalendarLocale(locale: string | undefined): string {
+  const trimmed = locale?.trim() ?? '';
+
+  if (trimmed === '') {
+    return DEFAULT_CALENDAR_LOCALE;
+  }
+
+  try {
+    if (Intl.DateTimeFormat.supportedLocalesOf([trimmed]).length === 0) {
+      return DEFAULT_CALENDAR_LOCALE;
+    }
+  } catch {
+    return DEFAULT_CALENDAR_LOCALE;
+  }
+
+  return trimmed;
+}
+
+/**
+ * resolveCalendarWeekdayLabels — возвращает короткие подписи семи дней недели.
+ * Порядок — с понедельника по воскресенье, в переданной локали.
+ *
+ * @param locale локаль оформления
+ * @returns подписи дней недели
+ */
+export function resolveCalendarWeekdayLabels(locale: string): CalendarWeekdayLabels {
+  const formatter = new Intl.DateTimeFormat(locale, {
+    timeZone: 'UTC',
+    weekday: 'short',
+  });
+  const labels = [0, 1, 2, 3, 4, 5, 6].map((offset) => {
+    const date = new Date(CALENDAR_WEEK_MONDAY_UTC);
+
+    date.setUTCDate(date.getUTCDate() + offset);
+
+    return formatter.format(date);
+  });
+
+  return [labels[0], labels[1], labels[2], labels[3], labels[4], labels[5], labels[6]];
 }
 
 /**
@@ -469,8 +524,8 @@ export type CalendarWeekdayLabels = readonly [
 ];
 
 /**
- * DEFAULT_CALENDAR_WEEKDAY_LABELS — задаёт подписи дней недели для шапки сетки по умолчанию.
- * Используется, когда вызывающий код не передал проп `weekdayLabels`.
+ * DEFAULT_CALENDAR_WEEKDAY_LABELS — задаёт короткие подписи дней недели английской локали.
+ * Совпадает с подписями `en-US`. Витрина берёт их стартовым значением.
  */
 export const DEFAULT_CALENDAR_WEEKDAY_LABELS = Object.freeze([
   'Mon',

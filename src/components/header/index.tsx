@@ -8,14 +8,16 @@
  *  - содержимое центральной колонки через проп `center`
  *  - узлы перед кнопкой настроек через проп `leadingActions`
  *  - обработчик кнопки настроек через проп `onSettingsClick`
+ *  - меню профиля через проп `profileMenu`. Без пропа меню берёт свои умолчания
  *  - id панели кнопки настроек через проп `settingsAriaControls`
  *  - раскрытость панели кнопки настроек через проп `settingsAriaExpanded`
  *  - доступное имя кнопки настроек через проп `settingsLabel`
+ *  - кнопку темы через проп `themeToggle`. Без пропа кнопка берёт свои умолчания
  *
  * Основные задачи:
  * 1. Экспортировать компонент Header
  * 2. Типизировать пропсы через `HeaderProps`
- * 3. Реэкспортировать `HEADER_BLOCK_SIZE`
+ * 3. Реэкспортировать `DEFAULT_HEADER_AUTO_HIDE` и `HEADER_BLOCK_SIZE`
  * 4. Выставлять `aria-label` кнопки настроек, а при переданных пропах —
  *    `aria-controls` и `aria-expanded`
  *
@@ -28,8 +30,8 @@
 import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { ProfileMenu } from '@components/profile-menu';
-import { ThemeToggle } from '@components/theme-toggle';
+import { ProfileMenu, type ProfileMenuProps } from '@components/profile-menu';
+import { ThemeToggle, type ThemeToggleProps } from '@components/theme-toggle';
 import { SettingsIcon } from '@icons';
 import { Icon } from '@ui/icon';
 import { Text } from '@ui/text';
@@ -65,9 +67,11 @@ const DEFAULT_HEADER_BRAND_TEXT = 'Project Name';
  * @property center — содержимое центральной колонки
  * @property leadingActions — узлы перед кнопкой настроек в ряду действий
  * @property onSettingsClick — обработчик нажатия кнопки настроек
+ * @property profileMenu — меню профиля. Без пропа меню берёт свои умолчания
  * @property settingsAriaControls — id панели, которой управляет кнопка настроек
  * @property settingsAriaExpanded — раскрытое состояние панели кнопки настроек
  * @property settingsLabel — доступное имя кнопки настроек
+ * @property themeToggle — кнопка темы. Без пропа кнопка берёт свои умолчания
  */
 type HeaderProps = {
   autoHide?: boolean;
@@ -75,9 +79,11 @@ type HeaderProps = {
   center?: ReactNode;
   leadingActions?: ReactNode;
   onSettingsClick?: () => void;
+  profileMenu?: ProfileMenuProps;
   settingsAriaControls?: string;
   settingsAriaExpanded?: boolean;
   settingsLabel?: string;
+  themeToggle?: ThemeToggleProps;
 };
 
 /**
@@ -140,9 +146,11 @@ export function Header({
   center,
   leadingActions,
   onSettingsClick,
+  profileMenu,
   settingsAriaControls,
   settingsAriaExpanded,
   settingsLabel = DEFAULT_HEADER_SETTINGS_LABEL,
+  themeToggle,
 }: HeaderProps) {
   const navigate = useNavigate();
   const { dataRevealed, handleMouseEnter, handleMouseLeave } = useHeaderAutoHide(
@@ -179,8 +187,8 @@ export function Header({
             >
               <SettingsIcon />
             </Icon>
-            <ThemeToggle />
-            <ProfileMenu />
+            <ThemeToggle {...themeToggle} />
+            <ProfileMenu {...profileMenu} />
           </StyledHeaderActions>
         </StyledHeaderBar>
       </StyledHeader>

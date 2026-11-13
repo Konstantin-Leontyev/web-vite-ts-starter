@@ -43,8 +43,12 @@
  *    `Next month`. Пустая строка остаётся этой фразой
  *  - доступное имя кнопки «год вперёд» через проп `nextYearAriaLabel`. Без пропа —
  *    `Next year`. Пустая строка остаётся этой фразой
- *  - подписи дней недели через проп `weekdayLabels`. Без пропа — `Mon` … `Sun`.
- *    Пустая строка дня прячет видимую подпись, доступное имя остаётся умолчанием этого дня
+ *  - локаль оформления даты через проп `locale`. Без пропа панель берёт `en-US`.
+ *    Пустая строка, пробелы и неразбираемая метка остаются этой локалью
+ *  - подписи дней недели через проп `weekdayLabels`. Без пропа подписи берутся
+ *    из локали: у `en-US` это `Mon` … `Sun`. Переданные подписи сильнее локали.
+ *    Пустая строка дня прячет видимую подпись, доступное имя остаётся подписью
+ *    этого дня в локали
  *  - иконка календаря всегда в позиции `start`. Публичного пропа позиции нет
  *  - подпись над рядом через проп `label`
  *  - черновик диапазона в открытой панели: клики по дням не пишут наружу до
@@ -60,7 +64,11 @@
  *    `aria`-атрибуты сегментов и панели календаря.
  *    Фокус панели — на выбранном дне, иначе на сегодняшнем, иначе на первом доступном.
  *    Подвал панели — одна Tab-остановка со стрелками между кнопками
- * 4. Реэкспортировать `todayUtc` из `src/ui/date-range-input/calendar-panel`
+ * 4. Реэкспортировать `DEFAULT_CALENDAR_LOCALE`, `DEFAULT_CALENDAR_WEEKDAY_LABELS`,
+ *    `resolveCalendarLocale`, `resolveCalendarWeekdayLabels`, `todayUtc`
+ *    и тип `CalendarWeekdayLabels` из `src/ui/date-range-input/calendar-panel`,
+ *    а также дефолты `DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL`,
+ *    `DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL` и `DEFAULT_DATE_RANGE_INPUT_RESET_LABEL`
  *
  * Потребители:
  *  - страницы приложения — выбирают диапазон дат
@@ -165,11 +173,28 @@ const DEFAULT_DATE_RANGE_INPUT_PANEL_ARIA_LABEL = 'Date range calendar';
 const DEFAULT_DATE_RANGE_INPUT_CLEAR_ARIA_LABEL = 'Clear date range';
 
 /**
+ * DateRangeInputClearProps — представляет пропсы кнопки сброса DateRangeInput.
+ * Имя сброса допустимо только вместе с обработчиком сброса.
+ *
+ * @property clearAriaLabel — доступное имя кнопки сброса. Без пропа — `Clear date range`.
+ *   Пустая строка остаётся этой фразой
+ * @property onClear — обработчик сброса диапазона. Без обработчика кнопка сброса
+ *   не показывается
+ */
+type DateRangeInputClearProps =
+  | {
+      clearAriaLabel?: never;
+      onClear?: never;
+    }
+  | {
+      clearAriaLabel?: string;
+      onClear: () => void;
+    };
+
+/**
  * DateRangeInputProps — представляет пропсы компонента DateRangeInput.
  *
  * @property buttonShape — форма кнопок подвала панели. Без пропа совпадает с `shape`
- * @property clearAriaLabel — доступное имя кнопки сброса. Без пропа — `Clear date range`.
- *   Пустая строка остаётся этой фразой
  * @property commitLabel — видимый текст кнопки подтверждения. Без пропа — `Set`.
  *   Пустая строка прячет текст, доступное имя остаётся этой фразой
  * @property dayShape — форма подсветки дня в панели. Без пропа совпадает с `shape`
@@ -179,14 +204,14 @@ const DEFAULT_DATE_RANGE_INPUT_CLEAR_ARIA_LABEL = 'Clear date range';
  * @property endDay — конечный день диапазона в формате ISO
  * @property endLabel — текст `title` конечного сегмента. Видимым лейблом сегмента не является
  * @property label — подпись над рядом сегментов
+ * @property locale — локаль оформления даты. Без пропа панель берёт `en-US`.
+ *   Пустая строка, пробелы и неразбираемая метка остаются этой локалью
  * @property maxDay — верхняя граница допустимых дней в формате ISO
  * @property minDay — нижняя граница допустимых дней в формате ISO
  * @property nextMonthAriaLabel — доступное имя кнопки «месяц вперёд». Без пропа —
  *   `Next month`. Пустая строка остаётся этой фразой
  * @property nextYearAriaLabel — доступное имя кнопки «год вперёд». Без пропа —
  *   `Next year`. Пустая строка остаётся этой фразой
- * @property onClear — обработчик сброса диапазона. Без обработчика кнопка сброса
- *   не показывается
  * @property onEndDayChange — обработчик изменения конечного дня
  * @property onStartDayChange — обработчик изменения начального дня
  * @property panelAriaLabel — доступное имя диалога панели. Без пропа —
@@ -200,19 +225,10 @@ const DEFAULT_DATE_RANGE_INPUT_CLEAR_ARIA_LABEL = 'Clear date range';
  * @property startDay — начальный день диапазона в формате ISO
  * @property startLabel — текст `title` начального сегмента. Видимым лейблом сегмента не является
  * @property weekdayLabels — подписи дней недели с понедельника по воскресенье.
- *   Без пропа — `Mon` … `Sun`. Пустая строка дня прячет видимую подпись,
- *   доступное имя остаётся умолчанием этого дня
+ *   Без пропа подписи берутся из локали. Переданные подписи сильнее.
+ *   Пустая строка дня прячет видимую подпись, доступное имя остаётся подписью
+ *   этого дня в локали
  */
-type DateRangeInputClearProps =
-  | {
-      clearAriaLabel?: never;
-      onClear?: never;
-    }
-  | {
-      clearAriaLabel?: string;
-      onClear: () => void;
-    };
-
 type DateRangeInputProps = DateRangeInputStyleProps &
   DateRangeInputClearProps &
   Omit<
@@ -232,6 +248,7 @@ type DateRangeInputProps = DateRangeInputStyleProps &
     endDay?: string;
     endLabel?: string;
     label?: string;
+    locale?: string;
     maxDay?: string;
     minDay?: string;
     nextMonthAriaLabel?: string;
@@ -398,6 +415,7 @@ export function DateRangeInput({
   endDay = DEFAULT_DATE_RANGE_INPUT_END_DAY,
   endLabel = DEFAULT_DATE_RANGE_INPUT_END_LABEL,
   label,
+  locale,
   maxDay,
   minDay,
   nextMonthAriaLabel,
@@ -704,6 +722,7 @@ export function DateRangeInput({
           <CalendarPanel
             dayShape={dayShape}
             firstAvailableDayRef={firstAvailableDayRef}
+            locale={locale}
             maxDay={maxDay}
             minDay={minDay}
             nextMonthAriaLabel={nextMonthAriaLabel}
@@ -764,7 +783,10 @@ export function DateRangeInput({
 
 /* eslint-disable react-refresh/only-export-components -- реэкспорт утилит календаря и дефолтов текста */
 export {
+  DEFAULT_CALENDAR_LOCALE,
   DEFAULT_CALENDAR_WEEKDAY_LABELS,
+  resolveCalendarLocale,
+  resolveCalendarWeekdayLabels,
   todayUtc,
   type CalendarWeekdayLabels,
 } from './calendar-panel';

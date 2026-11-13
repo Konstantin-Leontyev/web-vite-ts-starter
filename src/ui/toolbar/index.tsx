@@ -41,6 +41,9 @@
  *  - кнопку сброса поля поиска через проп `showSearchFieldClearButton`. Без пропа
  *    сброс есть: пропущенное значение становится `true` в деструктуризации,
  *    до `resolveClearProps`
+ *  - доступное имя кнопки сброса поля поиска через проп `searchClearAriaLabel`.
+ *    Без пропа — `Clear search`. Пустая строка остаётся этой фразой. При
+ *    выключенном поиске и при выключенном сбросе не собирается
  *  - лупу поля поиска через проп `showSearchFieldIcon`. Без пропа лупы нет
  *  - обводку фокуса поля поиска через проп `showSearchFieldOutline`. Без пропа
  *    обводка есть
@@ -101,6 +104,7 @@ import {
   SearchField,
   resolveSearchFieldIconProps,
   type ShowSearchFieldBorderProps,
+  type ShowSearchFieldClearProps,
   type ShowSearchFieldIconProps,
 } from '@ui/search-field';
 import { type DistributiveOmit } from '@ui/type-utils';
@@ -129,6 +133,9 @@ import {
  * @property searchAriaLabel — доступное имя поля поиска и кнопки, которая его открывает.
  *   Без пропа — `Search`. Пустая строка остаётся этой фразой. При
  *   `showSearchField={false}` не собирается
+ * @property searchClearAriaLabel — доступное имя кнопки сброса поля поиска.
+ *   Без пропа — `Clear search`. Пустая строка остаётся этой фразой.
+ *   При выключенном поиске и при `showSearchFieldClearButton={false}` не собирается
  * @property searchDisabled — включает недоступное состояние поля поиска
  * @property searchPlaceholder — плейсхолдер поля поиска. При `showSearchField={false}`
  *   не собирается
@@ -154,14 +161,15 @@ type ToolbarSearchProps =
       searchTitle?: string;
       shape?: Exclude<ShapePreset, 'pill'>;
       showSearchField?: true;
-      showSearchFieldClearButton?: boolean;
       showSearchFieldOutline?: boolean;
       tinted?: boolean;
     } & ShowSearchFieldBorderProps &
+      ShowSearchFieldClearProps &
       ShowSearchFieldIconProps)
   | {
       onSearchChange?: never;
       searchAriaLabel?: never;
+      searchClearAriaLabel?: never;
       searchDisabled?: never;
       searchFieldBorderTone?: never;
       searchFieldIcon?: never;
@@ -204,6 +212,12 @@ type ToolbarProps = {
  * Используется, когда вызывающий код не передал проп `searchAriaLabel`.
  */
 const DEFAULT_TOOLBAR_SEARCH_ARIA_LABEL = 'Search';
+
+/**
+ * DEFAULT_TOOLBAR_SEARCH_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса поля поиска по умолчанию.
+ * Используется, когда вызывающий код не передал проп `searchClearAriaLabel`.
+ */
+const DEFAULT_TOOLBAR_SEARCH_CLEAR_ARIA_LABEL = 'Clear search';
 
 /**
  * DEFAULT_TOOLBAR_SEARCH_TITLE — задаёт подсказку кнопки поиска по умолчанию.
@@ -369,6 +383,7 @@ function Toolbar({
   onSearchChange,
   ref,
   searchAriaLabel,
+  searchClearAriaLabel,
   searchDisabled = false,
   searchFieldBorderTone,
   searchFieldIcon,
@@ -573,7 +588,14 @@ function Toolbar({
     searchFieldIconPosition,
     searchFieldIconTone
   );
-  const searchClearProps: ClearProps = resolveClearProps(showSearchFieldClearButton);
+  const searchClearName =
+    searchClearAriaLabel !== undefined && searchClearAriaLabel.trim() !== ''
+      ? searchClearAriaLabel
+      : DEFAULT_TOOLBAR_SEARCH_CLEAR_ARIA_LABEL;
+  const searchClearProps: ClearProps = resolveClearProps(
+    showSearchFieldClearButton,
+    searchClearName
+  );
 
   return (
     <StyledToolbar

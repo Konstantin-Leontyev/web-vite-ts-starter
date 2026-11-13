@@ -22,7 +22,8 @@
  *  - `@ui/input` и `@ui/search-field` — подключают `ClearProps` и рендерят кнопку сброса
  *  - `@ui/listbox` — подключает `ShowClearButtonProps` у вида `field`. Пакет сброса
  *    поиска через `resolveClearProps` собирает только когда передан
- *    `showSearchFieldClearButton`
+ *    `showSearchFieldClearButton`. Без пропа в SearchField уходит имя сброса
+ *    без флага показа: сброс остаётся дефолтом поля
  *  - `src/pages/showcase` и `@ui/toolbar` — собирают пакет сброса через `resolveClearProps`
  */
 
@@ -76,7 +77,8 @@ type ShowClearButtonProps =
  * При включённом сбросе отдаёт `showClearButton` вместе с `clearAriaLabel`, иначе гасит
  * зависимое поле. Результат подходит и к `ClearProps`, и к `ShowClearButtonProps`.
  * Используется в `src/pages/showcase` и `@ui/toolbar`, а `@ui/listbox` зовёт функцию
- * только когда передан `showSearchFieldClearButton`: без пропа в SearchField уходит пустой объект.
+ * только когда передан `showSearchFieldClearButton`: без пропа в SearchField уходит
+ * имя сброса без флага показа.
  *
  * @param showClearButton включает кнопку сброса
  * @param clearAriaLabel доступное имя кнопки сброса при включённом сбросе

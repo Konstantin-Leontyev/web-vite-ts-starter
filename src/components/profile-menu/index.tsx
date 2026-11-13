@@ -271,7 +271,7 @@ function resolveSegmentLabel(
  * @example
  * <ProfileMenu />
  */
-export function ProfileMenu({
+function ProfileMenu({
   closeAriaLabel,
   displayEmail,
   greeting,
@@ -461,3 +461,14 @@ export function ProfileMenu({
     </StyledProfileMenu>
   );
 }
+
+export {
+  DEFAULT_PROFILE_MENU_EMAIL,
+  DEFAULT_PROFILE_MENU_GREETING,
+  DEFAULT_PROFILE_MENU_PRIVACY_LABEL,
+  DEFAULT_PROFILE_MENU_PROFILE_LABEL,
+  DEFAULT_PROFILE_MENU_SIGN_OUT_LABEL,
+  DEFAULT_PROFILE_MENU_TERMS_LABEL,
+  ProfileMenu,
+  type ProfileMenuProps,
+};
