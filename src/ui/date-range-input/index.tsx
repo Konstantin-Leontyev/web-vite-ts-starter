@@ -14,17 +14,37 @@
  *  - форму подсветки дня через проп `dayShape`. Без `dayShape` совпадает с `shape`
  *  - недоступное состояние через проп `disabled`
  *  - конечный день диапазона через проп `endDay`
- *  - текст `title` конечного сегмента через проп `endLabel`. Участвует в
- *    `aria-label` кнопки сброса, видимым лейблом сегмента не является
+ *  - текст `title` конечного сегмента через проп `endLabel`. Видимым лейблом
+ *    сегмента не является
  *  - верхнюю границу допустимых дней через проп `maxDay`
  *  - нижнюю границу допустимых дней через проп `minDay`
  *  - обработчик сброса диапазона через проп `onClear`. Без обработчика кнопка
  *    сброса не показывается
+ *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа —
+ *    `Clear date range`. Пустая строка остаётся этой фразой
  *  - обработчик изменения конечного дня через проп `onEndDayChange`
  *  - обработчик изменения начального дня через проп `onStartDayChange`
  *  - начальный день диапазона через проп `startDay`
- *  - текст `title` начального сегмента через проп `startLabel`. Участвует в
- *    `aria-label` кнопки сброса, видимым лейблом сегмента не является
+ *  - текст `title` начального сегмента через проп `startLabel`. Видимым лейблом
+ *    сегмента не является
+ *  - видимый текст кнопки подтверждения через проп `commitLabel`. Без пропа — `Set`.
+ *    Пустая строка прячет текст, доступное имя остаётся этой фразой
+ *  - видимый текст кнопки сброса черновика через проп `resetLabel`. Без пропа — `Reset`.
+ *    Пустая строка прячет текст, доступное имя остаётся этой фразой
+ *  - видимый текст кнопки закрытия панели через проп `dismissLabel`. Без пропа — `Close`.
+ *    Пустая строка прячет текст, доступное имя остаётся этой фразой
+ *  - доступное имя панели через проп `panelAriaLabel`. Без пропа —
+ *    `Date range calendar`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки «год назад» через проп `previousYearAriaLabel`. Без пропа —
+ *    `Previous year`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки «месяц назад» через проп `previousMonthAriaLabel`. Без пропа —
+ *    `Previous month`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки «месяц вперёд» через проп `nextMonthAriaLabel`. Без пропа —
+ *    `Next month`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки «год вперёд» через проп `nextYearAriaLabel`. Без пропа —
+ *    `Next year`. Пустая строка остаётся этой фразой
+ *  - подписи дней недели через проп `weekdayLabels`. Без пропа — `Mon` … `Sun`.
+ *    Пустая строка дня прячет видимую подпись, доступное имя остаётся умолчанием этого дня
  *  - иконка календаря всегда в позиции `start`. Публичного пропа позиции нет
  *  - подпись над рядом через проп `label`
  *  - черновик диапазона в открытой панели: клики по дням не пишут наружу до
@@ -57,7 +77,6 @@ import {
 
 import { useAnchoredOpen } from '@hooks/use-anchored-open';
 import { CalendarIcon, CloseIcon } from '@icons';
-import { resolveClearAriaLabel } from '@ui/a11y';
 import { AnchoredPanel } from '@ui/anchored-panel';
 import { FieldLabel } from '@ui/field-label';
 import { Icon } from '@ui/icon';
@@ -74,6 +93,7 @@ import {
   formatIsoDayCompact,
   isIsoDayAfter,
   monthViewFromIsoDayOrToday,
+  type CalendarWeekdayLabels,
   type MonthView,
 } from './calendar-panel';
 import {
@@ -115,54 +135,86 @@ const DEFAULT_DATE_RANGE_INPUT_START_DAY = '';
 const DEFAULT_DATE_RANGE_INPUT_START_LABEL = 'Start date';
 
 /**
- * PANEL_COMMIT_LABEL — задаёт текст кнопки подтверждения черновика в панели.
+ * DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL — задаёт видимый текст кнопки подтверждения по умолчанию.
+ * Используется, когда вызывающий код не передал проп `commitLabel`.
  */
-const PANEL_COMMIT_LABEL = 'Set';
+const DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL = 'Set';
 
 /**
- * PANEL_RESET_LABEL — задаёт текст кнопки сброса черновика в панели.
+ * DEFAULT_DATE_RANGE_INPUT_RESET_LABEL — задаёт видимый текст кнопки сброса черновика по умолчанию.
+ * Используется, когда вызывающий код не передал проп `resetLabel`.
  */
-const PANEL_RESET_LABEL = 'Reset';
+const DEFAULT_DATE_RANGE_INPUT_RESET_LABEL = 'Reset';
 
 /**
- * PANEL_DISMISS_LABEL — задаёт текст кнопки закрытия панели без подтверждения.
- * Совпадает по смыслу с Escape.
+ * DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL — задаёт видимый текст кнопки закрытия панели по умолчанию.
+ * Используется, когда вызывающий код не передал проп `dismissLabel`.
  */
-const PANEL_DISMISS_LABEL = 'Close';
+const DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL = 'Close';
 
 /**
- * CALENDAR_PANEL_ARIA_LABEL — задаёт текст `aria-label` диалога панели календаря.
- * Используется для статичного доступного имени панели без собственного титула.
+ * DEFAULT_DATE_RANGE_INPUT_PANEL_ARIA_LABEL — задаёт доступное имя диалога панели по умолчанию.
+ * Используется, когда вызывающий код не передал проп `panelAriaLabel`.
  */
-const CALENDAR_PANEL_ARIA_LABEL = 'Date range calendar';
+const DEFAULT_DATE_RANGE_INPUT_PANEL_ARIA_LABEL = 'Date range calendar';
 
 /**
- * CLEAR_DATE_RANGE_ARIA_LABEL — задаёт запасной `aria-label` кнопки сброса диапазона.
- * Передаётся вторым аргументом в `resolveClearAriaLabel`, когда подписи сегментов пусты.
+ * DEFAULT_DATE_RANGE_INPUT_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса диапазона по умолчанию.
+ * Используется, когда вызывающий код не передал проп `clearAriaLabel`.
  */
-const CLEAR_DATE_RANGE_ARIA_LABEL = 'Clear date range';
+const DEFAULT_DATE_RANGE_INPUT_CLEAR_ARIA_LABEL = 'Clear date range';
 
 /**
  * DateRangeInputProps — представляет пропсы компонента DateRangeInput.
  *
  * @property buttonShape — форма кнопок подвала панели. Без пропа совпадает с `shape`
+ * @property clearAriaLabel — доступное имя кнопки сброса. Без пропа — `Clear date range`.
+ *   Пустая строка остаётся этой фразой
+ * @property commitLabel — видимый текст кнопки подтверждения. Без пропа — `Set`.
+ *   Пустая строка прячет текст, доступное имя остаётся этой фразой
  * @property dayShape — форма подсветки дня в панели. Без пропа совпадает с `shape`
  * @property disabled — включает недоступное состояние
+ * @property dismissLabel — видимый текст кнопки закрытия панели. Без пропа — `Close`.
+ *   Пустая строка прячет текст, доступное имя остаётся этой фразой
  * @property endDay — конечный день диапазона в формате ISO
- * @property endLabel — текст `title` конечного сегмента и фрагмент `aria-label`
- *   кнопки сброса. Видимым лейблом сегмента не является
+ * @property endLabel — текст `title` конечного сегмента. Видимым лейблом сегмента не является
  * @property label — подпись над рядом сегментов
  * @property maxDay — верхняя граница допустимых дней в формате ISO
  * @property minDay — нижняя граница допустимых дней в формате ISO
+ * @property nextMonthAriaLabel — доступное имя кнопки «месяц вперёд». Без пропа —
+ *   `Next month`. Пустая строка остаётся этой фразой
+ * @property nextYearAriaLabel — доступное имя кнопки «год вперёд». Без пропа —
+ *   `Next year`. Пустая строка остаётся этой фразой
  * @property onClear — обработчик сброса диапазона. Без обработчика кнопка сброса
  *   не показывается
  * @property onEndDayChange — обработчик изменения конечного дня
  * @property onStartDayChange — обработчик изменения начального дня
+ * @property panelAriaLabel — доступное имя диалога панели. Без пропа —
+ *   `Date range calendar`. Пустая строка остаётся этой фразой
+ * @property previousMonthAriaLabel — доступное имя кнопки «месяц назад». Без пропа —
+ *   `Previous month`. Пустая строка остаётся этой фразой
+ * @property previousYearAriaLabel — доступное имя кнопки «год назад». Без пропа —
+ *   `Previous year`. Пустая строка остаётся этой фразой
+ * @property resetLabel — видимый текст кнопки сброса черновика. Без пропа — `Reset`.
+ *   Пустая строка прячет текст, доступное имя остаётся этой фразой
  * @property startDay — начальный день диапазона в формате ISO
- * @property startLabel — текст `title` начального сегмента и фрагмент `aria-label`
- *   кнопки сброса. Видимым лейблом сегмента не является
+ * @property startLabel — текст `title` начального сегмента. Видимым лейблом сегмента не является
+ * @property weekdayLabels — подписи дней недели с понедельника по воскресенье.
+ *   Без пропа — `Mon` … `Sun`. Пустая строка дня прячет видимую подпись,
+ *   доступное имя остаётся умолчанием этого дня
  */
+type DateRangeInputClearProps =
+  | {
+      clearAriaLabel?: never;
+      onClear?: never;
+    }
+  | {
+      clearAriaLabel?: string;
+      onClear: () => void;
+    };
+
 type DateRangeInputProps = DateRangeInputStyleProps &
+  DateRangeInputClearProps &
   Omit<
     ComponentPropsWithRef<'div'>,
     | 'className'
@@ -173,18 +225,26 @@ type DateRangeInputProps = DateRangeInputStyleProps &
     | keyof DateRangeInputStyleProps
   > & {
     buttonShape?: ShapePreset;
+    commitLabel?: string;
     dayShape?: ShapePreset;
     disabled?: boolean;
+    dismissLabel?: string;
     endDay?: string;
     endLabel?: string;
     label?: string;
     maxDay?: string;
     minDay?: string;
-    onClear?: () => void;
+    nextMonthAriaLabel?: string;
+    nextYearAriaLabel?: string;
     onEndDayChange?: (endDay: string) => void;
     onStartDayChange?: (startDay: string) => void;
+    panelAriaLabel?: string;
+    previousMonthAriaLabel?: string;
+    previousYearAriaLabel?: string;
+    resetLabel?: string;
     startDay?: string;
     startLabel?: string;
+    weekdayLabels?: CalendarWeekdayLabels;
   };
 
 /**
@@ -297,27 +357,22 @@ function resolveDraftRange(
 }
 
 /**
- * clearDateRangeButtonAriaLabel — возвращает `aria-label` кнопки сброса диапазона.
+ * resolveFooterLabel — возвращает видимый текст кнопки подвала и имя без текста.
+ * Пустая строка прячет текст. Доступное имя тогда — умолчание кнопки.
  *
- * Как работает:
- * 1. Обрезает краевые пробелы у `startLabel` и `endLabel`
- * 2. Склеивает оба непустых текста через `/` или берёт один непустой
- * 3. Собирает подпись сброса: при непустом фрагменте — `Clear` и фрагмент без
- *    завершающего `:`, иначе запасной текст `Clear date range`
- *
- * @param startLabel текст `title` начального сегмента
- * @param endLabel текст `title` конечного сегмента
- * @returns текст для `aria-label`
+ * @param value переданный текст
+ * @param fallback умолчание кнопки
+ * @returns подпись и доступное имя пустой кнопки
  */
-function clearDateRangeButtonAriaLabel(startLabel: string, endLabel: string): string {
-  const start = startLabel.trim();
-  const end = endLabel.trim();
-
-  if (start !== '' && end !== '') {
-    return resolveClearAriaLabel(`${start} / ${end}`, CLEAR_DATE_RANGE_ARIA_LABEL);
+function resolveFooterLabel(
+  value: string,
+  fallback: string
+): { ariaLabel?: string; label: string } {
+  if (value.trim() === '') {
+    return { ariaLabel: fallback, label: '' };
   }
 
-  return resolveClearAriaLabel(start || end, CLEAR_DATE_RANGE_ARIA_LABEL);
+  return { label: value };
 }
 
 /**
@@ -335,20 +390,30 @@ function clearDateRangeButtonAriaLabel(startLabel: string, endLabel: string): st
 export function DateRangeInput({
   borderTone,
   buttonShape: buttonShapeProp,
+  clearAriaLabel,
+  commitLabel = DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
   dayShape: dayShapeProp,
   disabled = DEFAULT_DATE_RANGE_INPUT_DISABLED,
+  dismissLabel = DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
   endDay = DEFAULT_DATE_RANGE_INPUT_END_DAY,
   endLabel = DEFAULT_DATE_RANGE_INPUT_END_LABEL,
   label,
   maxDay,
   minDay,
+  nextMonthAriaLabel,
+  nextYearAriaLabel,
   onClear,
   onEndDayChange,
   onStartDayChange,
+  panelAriaLabel,
+  previousMonthAriaLabel,
+  previousYearAriaLabel,
+  resetLabel = DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
   shape,
   size,
   startDay = DEFAULT_DATE_RANGE_INPUT_START_DAY,
   startLabel = DEFAULT_DATE_RANGE_INPUT_START_LABEL,
+  weekdayLabels,
   ...rest
 }: DateRangeInputProps) {
   const { layoutProps, restProps } = splitLayoutProps(rest);
@@ -597,7 +662,11 @@ export function DateRangeInput({
             <SegmentButtonPartsDivider aria-hidden="true" size={size} />
             {/* Секция ряда, не слот сброса: наведение и нажатие красит сама кнопка. */}
             <Icon
-              aria-label={clearDateRangeButtonAriaLabel(startLabel, endLabel)}
+              aria-label={
+                clearAriaLabel !== undefined && clearAriaLabel.trim() !== ''
+                  ? clearAriaLabel
+                  : DEFAULT_DATE_RANGE_INPUT_CLEAR_ARIA_LABEL
+              }
               as="button"
               disabled={disabled}
               shape="square"
@@ -621,7 +690,11 @@ export function DateRangeInput({
         onOpenFocus={handleOpenFocus}
       >
         <StyledDateRangeInputPanel
-          aria-label={CALENDAR_PANEL_ARIA_LABEL}
+          aria-label={
+            panelAriaLabel !== undefined && panelAriaLabel.trim() !== ''
+              ? panelAriaLabel
+              : DEFAULT_DATE_RANGE_INPUT_PANEL_ARIA_LABEL
+          }
           aria-modal={true}
           id={panelId}
           ref={panelRef}
@@ -633,6 +706,10 @@ export function DateRangeInput({
             firstAvailableDayRef={firstAvailableDayRef}
             maxDay={maxDay}
             minDay={minDay}
+            nextMonthAriaLabel={nextMonthAriaLabel}
+            nextYearAriaLabel={nextYearAriaLabel}
+            previousMonthAriaLabel={previousMonthAriaLabel}
+            previousYearAriaLabel={previousYearAriaLabel}
             rangeEnd={draftEndDay}
             rangeStart={draftStartDay}
             selectedDayRef={selectedDayRef}
@@ -640,13 +717,14 @@ export function DateRangeInput({
             size={size}
             todayDayRef={todayDayRef}
             viewMonth={viewMonth}
+            weekdayLabels={weekdayLabels}
             onCommitDay={handleCommitDay}
             onSelectDay={handleSelectDay}
             onViewMonthChange={setViewMonth}
           />
           <SegmentButtonParts
             center={{
-              label: PANEL_RESET_LABEL,
+              ...resolveFooterLabel(resetLabel, DEFAULT_DATE_RANGE_INPUT_RESET_LABEL),
               ref: resetButtonRef,
               tabIndex: footerTabStop === 1 ? 0 : -1,
               textTone: 'danger',
@@ -655,7 +733,7 @@ export function DateRangeInput({
               onKeyDown: (event) => handleFooterKeyDown(event, 1),
             }}
             left={{
-              label: PANEL_COMMIT_LABEL,
+              ...resolveFooterLabel(commitLabel, DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL),
               ref: commitButtonRef,
               tabIndex: footerTabStop === 0 ? 0 : -1,
               textTone: 'success',
@@ -664,7 +742,10 @@ export function DateRangeInput({
               onKeyDown: (event) => handleFooterKeyDown(event, 0),
             }}
             right={{
-              label: PANEL_DISMISS_LABEL,
+              ...resolveFooterLabel(
+                dismissLabel,
+                DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL
+              ),
               ref: dismissButtonRef,
               tabIndex: footerTabStop === 2 ? 0 : -1,
               onClick: handlePanelDismiss,
@@ -681,5 +762,14 @@ export function DateRangeInput({
   );
 }
 
-/* eslint-disable react-refresh/only-export-components -- реэкспорт todayUtc */
-export { todayUtc } from './calendar-panel';
+/* eslint-disable react-refresh/only-export-components -- реэкспорт утилит календаря и дефолтов текста */
+export {
+  DEFAULT_CALENDAR_WEEKDAY_LABELS,
+  todayUtc,
+  type CalendarWeekdayLabels,
+} from './calendar-panel';
+export {
+  DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
+  DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
+  DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
+};

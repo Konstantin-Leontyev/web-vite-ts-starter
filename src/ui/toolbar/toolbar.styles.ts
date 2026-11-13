@@ -190,8 +190,11 @@ function getToolbarStyles(props: ToolbarStyleProps & { theme: AppTheme }): strin
  *  - `row-gap` — зазор ряда всегда длина: `0`, когда строка скрыта, и отступ
  *    панели, когда открыта
  *  - `min-inline-size: max-content` — ширина панели не меньше ряда действий
- *  - `justify-self: center` — выравнивает панель по центру родителя по горизонтали
- *  - `min-block-size: 0` — сжимается по высоте во flex/grid-родителе
+ *  - `inline-size: max-content` и `justify-self: center` — без поля поиска
+ *    ширина по содержимому и центр на родителе
+ *  - `inline-size: 100%` и `justify-self: stretch` при поле поиска — ширина
+ *    родителя, чтобы сужение родителя доходило до поля
+ *  - `min-block-size: min-content` — высота не ниже содержимого
  *  - `padding` — внутренний отступ поверхности
  *  - `overflow: hidden` — обрезает содержимое по скруглению
  *
@@ -207,8 +210,15 @@ export const StyledToolbar = styled.div.withConfig({
   row-gap: ${(props) =>
     getSpacingValue(props.showSearchField !== false ? TOOLBAR_ROW_GAP : 0)};
   justify-self: center;
+  inline-size: max-content;
   min-inline-size: max-content;
-  min-block-size: 0;
+  min-block-size: min-content;
+  ${(props) =>
+    props.showSearchField !== false &&
+    `
+      justify-self: stretch;
+      inline-size: 100%;
+    `}
   padding: ${getSpacingValue(TOOLBAR_PADDING)};
   overflow: hidden;
   ${getTransitionStyles('row-gap', MOTION_CONTROL_DURATION)}
@@ -260,8 +270,9 @@ const TOOLBAR_SEARCH_ROW_PROP_NAMES = new Set<string>(['collapsed', 'visible']);
  * Как работает:
  * 1. При `collapsed` ставит `inline-size: 0` и `min-inline-size: 100%`: строка
  *    не раздувает панель и занимает её ширину
- * 2. Ставит `grid-template-rows` в `1fr` или `0fr` по `visible`
- * 3. Без `visible` гасит строку через `opacity: 0`
+ * 2. При `visible` ставит `grid-template-rows: auto` и `min-block-size: min-content`
+ * 3. Без `visible` ставит `grid-template-rows: 0fr`, `min-block-size: 0`
+ *    и `opacity: 0`
  *
  * @param props пропсы строки поля поиска
  * @returns CSS-правила, каждое с новой строки
@@ -274,9 +285,12 @@ function getToolbarSearchRowStyles(props: ToolbarSearchRowStyleProps): string {
     styles.push('min-inline-size: 100%;');
   }
 
-  styles.push(`grid-template-rows: ${props.visible ? '1fr' : '0fr'};`);
-
-  if (!props.visible) {
+  if (props.visible) {
+    styles.push('grid-template-rows: auto;');
+    styles.push('min-block-size: min-content;');
+  } else {
+    styles.push('grid-template-rows: 0fr;');
+    styles.push('min-block-size: 0;');
     styles.push('opacity: 0;');
   }
 
@@ -289,7 +303,7 @@ function getToolbarSearchRowStyles(props: ToolbarSearchRowStyleProps): string {
  *
  * Встроенные стили:
  *  - `display: grid` — строка схлопывается через `grid-template-rows`
- *  - `min-block-size: 0` — строка может схлопнуться в ноль по высоте
+ *  - `min-block-size: 0` — минимум высоты скрытой строки
  *
  * Генерация стилей:
  *  - `getToolbarSearchRowStyles` — ширина при схлопывании и раскрытие строки
@@ -323,12 +337,15 @@ const TOOLBAR_SEARCH_CLIP_PROP_NAMES = new Set<string>(['visible']);
  * Базируется на `<div>` и принимает проп `visible`.
  *
  * Встроенные стили:
- *  - `min-block-size: 0` — обрезка сжимается вместе со строкой
- *  - `overflow: hidden` без `visible` — обрезает поле, пока строка схлопнута
+ *  - `min-block-size: min-content` при `visible` — высота не ниже поля
+ *  - `min-block-size: 0` и `overflow: hidden` без `visible` — прячет поле,
+ *    пока строка скрыта
  */
 export const StyledToolbarSearchClip = styled.div.withConfig({
   shouldForwardProp: (prop) => !TOOLBAR_SEARCH_CLIP_PROP_NAMES.has(prop),
 })<ToolbarSearchClipStyleProps>`
-  min-block-size: 0;
-  ${(props) => !props.visible && 'overflow: hidden;'}
+  ${(props) =>
+    props.visible
+      ? 'min-block-size: min-content;'
+      : 'min-block-size: 0; overflow: hidden;'}
 `;

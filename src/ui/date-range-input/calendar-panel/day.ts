@@ -4,7 +4,7 @@
  *
  * Основные задачи:
  * 1. Типизировать вид месяца через `MonthView`
- * 2. Предоставить константы `DATE_PLACEHOLDER` и `WEEKDAY_LABELS`
+ * 2. Предоставить константы `DATE_PLACEHOLDER` и `DEFAULT_CALENDAR_WEEKDAY_LABELS`
  * 3. Предоставить `todayUtc`, `formatIsoDayCompact`, `formatIsoDayAccessible`,
  *    `isIsoDayAfter`, `isIsoDayBetweenRange`, `isIsoDayInBounds`,
  *    `monthViewFromIsoDay` и `clampIsoDayInBounds`
@@ -455,10 +455,24 @@ export function formatMonthTitle(view: MonthView): string {
 }
 
 /**
- * WEEKDAY_LABELS — задаёт подписи дней недели для шапки сетки в локали `en-US`.
+ * CalendarWeekdayLabels — представляет подписи семи дней недели.
  * Порядок — с понедельника по воскресенье.
  */
-export const WEEKDAY_LABELS = Object.freeze([
+export type CalendarWeekdayLabels = readonly [
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+  string,
+];
+
+/**
+ * DEFAULT_CALENDAR_WEEKDAY_LABELS — задаёт подписи дней недели для шапки сетки по умолчанию.
+ * Используется, когда вызывающий код не передал проп `weekdayLabels`.
+ */
+export const DEFAULT_CALENDAR_WEEKDAY_LABELS = Object.freeze([
   'Mon',
   'Tue',
   'Wed',
@@ -466,7 +480,7 @@ export const WEEKDAY_LABELS = Object.freeze([
   'Fri',
   'Sat',
   'Sun',
-] as const);
+] as const satisfies CalendarWeekdayLabels);
 
 /**
  * CalendarCell — представляет ячейку сетки месяца.

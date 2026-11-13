@@ -6,7 +6,7 @@
  * 1. Типизировать пропсы через `ScrollPortStyleProps`
  * 2. Хранить отступы краёв вьюпорта в `DEFAULT_SCROLL_PORT_PADDING_BLOCK_START`,
  *    `DEFAULT_SCROLL_PORT_PADDING_BLOCK_END`, `DEFAULT_SCROLL_PORT_PADDING_INLINE_START`
- *    и `DEFAULT_SCROLL_PORT_PADDING_INLINE_END`
+ *    и `DEFAULT_SCROLL_PORT_PADDING_INLINE_END`, ширину трека в `SCROLLBAR_TRACK_WIDTH`
  * 3. Предоставить функцию `omitScrollPortRoutedPaddingProps`, а также дефолт показа вуали
  *    `DEFAULT_SCROLL_PORT_SHOW_VEIL`
  * 4. Предоставить styled-узлы `StyledScrollPortRoot`, `StyledScrollPortContainer`
@@ -14,7 +14,7 @@
  * 5. Реэкспортировать `splitLayoutProps` для сборки в `index.tsx`
  *
  * Потребители:
- *  - `src/ui/scroll-port/index.tsx` — собирает компонент ScrollPort
+ *  - `src/ui/scroll-port/index.tsx` — собирает компонент ScrollPort и реэкспортирует публичное API
  */
 
 import styled from 'styled-components';
@@ -129,9 +129,10 @@ const VEIL_BLOCK_SIZE: SpacingValue = 32;
 
 /**
  * SCROLLBAR_TRACK_WIDTH — задаёт ширину трека скроллбара.
- * Используется в `resolveScrollPortTrackMarginInlineEnd`.
+ * Используется в `resolveScrollPortTrackMarginInlineEnd` и в
+ * `resolveShowcasePanelBreakpoint` из `src/pages/showcase/showcase.styles.ts`.
  */
-const SCROLLBAR_TRACK_WIDTH: SpacingValue = 8;
+export const SCROLLBAR_TRACK_WIDTH: SpacingValue = 8;
 
 /**
  * resolveScrollPortTrackMarginInlineEnd — вычисляет значение для CSS-свойства

@@ -6,6 +6,7 @@
  *  - layout-пропсы: отступы. Позиционирование и размеры каркас не принимает —
  *    высоту и место в потоке задаёт обёртка вызывающего кода
  *  - зазор между областью контента и панелью через проп `gap`
+ *  - порог ширины экрана через проп `panelBreakpoint`
  *  - область страницы через `children`
  *  - ref области контента через проп `contentRef`
  *  - дополнительные кнопки в шапке панели через проп `headerActions`. Рендерятся перед
@@ -37,14 +38,17 @@
  * Основные задачи:
  * 1. Экспортировать компонент Sidebar
  * 2. Типизировать пропсы через `SidebarProps`
- * 3. Выставлять `aria-controls`, `aria-expanded` и `aria-label` на кнопке сворачивания
+ * 3. Реэкспортировать `SIDEBAR_PANEL_WIDTH`
+ * 4. Выставлять `aria-controls`, `aria-expanded` и `aria-label` на кнопке сворачивания
  *    и `aria-labelledby` на слоте панели
- * 4. По нажатию сворачивания переносить фокус на кнопку вне панели с `aria-controls`
+ * 5. По нажатию сворачивания переносить фокус на кнопку вне панели с `aria-controls`
  *    на id панели и `aria-expanded`, пропуская кнопку сворачивания внутри.
  *    Перенос идёт до того, как родитель снимет раскрытость
  *
  * Потребители:
  *  - страницы приложения — показывают страницу с выезжающей панелью
+ *  - `src/pages/showcase/showcase.styles.ts` — читает `SIDEBAR_PANEL_WIDTH`
+ *    в пороге раскладки витрины
  *  - `src/pages/showcase` — демонстрирует состояния в витрине
  */
 
@@ -66,6 +70,7 @@ import { type TextNodeProps } from '@ui/text';
 import { type DistributiveOmit } from '@ui/type-utils';
 
 import {
+  SIDEBAR_PANEL_WIDTH,
   StyledSidebar,
   StyledSidebarContent,
   StyledSidebarSlot,
@@ -73,6 +78,8 @@ import {
   splitLayoutProps,
   type SidebarStyleProps,
 } from './sidebar.styles';
+
+export { SIDEBAR_PANEL_WIDTH };
 
 /**
  * DEFAULT_SIDEBAR_HEADER_ACTIONS — задаёт ряд действий шапки по умолчанию.
@@ -131,7 +138,8 @@ function isFocusInSlot(slot: HTMLElement | null): boolean {
 
 /**
  * CardForwardProps — представляет пропсы Card, доступные панели Sidebar.
- * Layout-пропсы зарезервированы за оболочкой Sidebar через `SidebarStyleProps`.
+ * Layout-пропсы зарезервированы за оболочкой Sidebar через `SidebarStyleProps`,
+ * кроме `panelBreakpoint`: он из вычитания исключён.
  * Ключи рамки, рамки действий и текста заголовка с подзаголовком вычтены и пересечены заново:
  * ветки не схлопнуты. Вызов с `showBorder={false}` и `borderTone` не собирается.
  */
@@ -141,9 +149,9 @@ type CardForwardProps = DistributiveOmit<
   | 'headerActions'
   | 'id'
   | 'titleId'
+  | Exclude<keyof SidebarStyleProps, 'panelBreakpoint'>
   | keyof BorderProps
   | keyof ShowActionBorderProps
-  | keyof SidebarStyleProps
   | keyof TextNodeProps<'subtitle'>
   | keyof TextNodeProps<'title'>
 > &
@@ -205,6 +213,7 @@ export function Sidebar({
   id,
   onClose,
   open,
+  panelBreakpoint,
   sidebarContent,
   ...forward
 }: SidebarProps) {
@@ -304,7 +313,7 @@ export function Sidebar({
   ];
 
   return (
-    <StyledSidebar {...layoutProps}>
+    <StyledSidebar {...layoutProps} panelBreakpoint={panelBreakpoint}>
       <StyledSidebarContent ref={contentRef}>{children}</StyledSidebarContent>
 
       <StyledSidebarSlot

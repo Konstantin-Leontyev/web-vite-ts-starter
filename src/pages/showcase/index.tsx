@@ -11,7 +11,8 @@
  *  - `src/components/router/router.tsx` — рендерит ShowcasePage как маршрут витрины
  */
 
-import { useState, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 
 import { SHOWCASE_SIDEBAR_ID, useShellOutletContext } from '@components/router';
 import { useToast } from '@hooks/use-toast';
@@ -28,15 +29,32 @@ import {
 import { Button, type ButtonIconProps } from '@ui/button';
 import { CARD_HEADER_ACTION_SIZE_PRESET, Card } from '@ui/card';
 import { Checkbox } from '@ui/checkbox';
-import { DateRangeInput, todayUtc } from '@ui/date-range-input';
+import {
+  DEFAULT_CALENDAR_WEEKDAY_LABELS,
+  DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
+  DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
+  DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
+  DateRangeInput,
+  todayUtc,
+} from '@ui/date-range-input';
 import { resolveClearProps, type ClearProps } from '@ui/field-clear';
 import { Fieldset } from '@ui/fieldset';
 import { DEFAULT_ICON_POSITION, Icon, getIconPadding } from '@ui/icon';
-import { type IconButtonRowAction } from '@ui/icon-button-row';
 import { Input } from '@ui/input';
 import {
+  DEFAULT_LISTBOX_APPEARANCE,
+  DEFAULT_LISTBOX_DISABLED,
   DEFAULT_LISTBOX_EMPTY_MESSAGE,
+  DEFAULT_LISTBOX_INLINE_CHECKBOX,
+  DEFAULT_LISTBOX_MULTIPLE,
   DEFAULT_LISTBOX_PLACEHOLDER,
+  DEFAULT_LISTBOX_SEARCH_DISABLED,
+  DEFAULT_LISTBOX_SEARCH_SHOW_BORDER,
+  DEFAULT_LISTBOX_SEARCH_SHOW_ICON,
+  DEFAULT_LISTBOX_SEARCH_SHOW_OUTLINE,
+  DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON,
+  DEFAULT_LISTBOX_SHOW_SEARCH,
+  DEFAULT_LISTBOX_TINTED,
   Listbox,
   type ListboxAppearanceProps,
   type ListboxMultipleProps,
@@ -57,9 +75,20 @@ import {
   type RangeInputValidationMessages,
   type RangeValue,
 } from '@ui/range-input';
+import {
+  DEFAULT_RATING_DESCRIPTION,
+  DEFAULT_RATING_STAR_NAMES,
+  DEFAULT_RATING_THRESHOLD,
+  DEFAULT_RATING_TITLE,
+  DEFAULT_RATING_TITLE_INLINE,
+  Rating,
+} from '@ui/rating';
 import { ScrollPort } from '@ui/scroll-port';
 import {
+  DEFAULT_SEARCH_FIELD_ICON_POSITION,
   DEFAULT_SEARCH_FIELD_PLACEHOLDER,
+  DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON,
+  DEFAULT_SEARCH_FIELD_SHOW_OUTLINE,
   SearchField,
   resolveSearchFieldBorderProps,
   resolveSearchFieldIconProps,
@@ -76,15 +105,22 @@ import { Switch } from '@ui/switch';
 import {
   DEFAULT_ADD_HINT,
   DEFAULT_EDIT_HINT,
+  DEFAULT_TABLE_EDIT_LABEL,
   DEFAULT_TABLE_HOVER_HIGHLIGHT,
   DEFAULT_TABLE_SHOW_BORDER,
   DEFAULT_TABLE_SIZE_PRESET,
   DEFAULT_TABLE_STRIPED,
 } from '@ui/table';
 import { Tag, type TagShowDotProps } from '@ui/tag';
-import { Text, type TextNodeProps } from '@ui/text';
+import {
+  Text,
+  textSizePresets,
+  type TextNodeProps,
+  type TextSizePreset,
+} from '@ui/text';
+import { DEFAULT_TEXT_ACTION_SHOW_UNDERLINE, TextAction } from '@ui/text-action';
 import { DEFAULT_TONE } from '@ui/tones';
-import { Toolbar } from '@ui/toolbar';
+import { DEFAULT_TOOLBAR_SEARCH_TITLE, Toolbar } from '@ui/toolbar';
 
 import { ButtonSettings, type ButtonWidgetState } from './button-settings';
 import { CardSettings, type CardWidgetState } from './card-settings';
@@ -114,6 +150,7 @@ import {
   type RadioButtonWidgetState,
 } from './radio-button-settings';
 import { RangeInputSettings, type RangeInputWidgetState } from './range-input-settings';
+import { RatingSettings, type RatingWidgetState } from './rating-settings';
 import {
   SearchFieldSettings,
   type SearchFieldWidgetState,
@@ -130,6 +167,8 @@ import {
   StyledRadioButtonDemo,
   StyledShowcaseWidgetFullRow,
   StyledShowcaseWidgets,
+  resolveShowcasePanelBreakpoint,
+  resolveShowcaseWidgetMinInlineSize,
 } from './showcase.styles';
 import { SpinnerSettings, type SpinnerWidgetState } from './spinner-settings';
 import { StepperSettings, type StepperWidgetState } from './stepper-settings';
@@ -137,7 +176,11 @@ import { SwitchSettings, type SwitchWidgetState } from './switch-settings';
 import { TableDemo } from './table-demo';
 import { TableSettings, type TableWidgetState } from './table-settings';
 import { TagSettings, type TagWidgetState } from './tag-settings';
-import { TextSettings, type TextWidgetState } from './text-settings';
+import {
+  TextSettings,
+  type TextActionWidgetState,
+  type TextWidgetState,
+} from './text-settings';
 import { ToastSettings, type ToastWidgetState } from './toast-settings';
 import { ToolbarSettings, type ToolbarWidgetState } from './toolbar-settings';
 
@@ -168,7 +211,7 @@ const CLOSE_WIDGET_SETTINGS_ARIA_LABEL = 'Close settings';
  * DEMO_RANGE_FROM_EXCEEDS_TO_ERROR — задаёт текст ошибки демо-валидации RangeInput.
  * Используется в `validateDemoRange`.
  */
-const DEMO_RANGE_FROM_EXCEEDS_TO_ERROR = 'From must not exceed To.';
+const DEMO_RANGE_FROM_EXCEEDS_TO_ERROR = 'From must not exceed To';
 
 /**
  * DEMO_MODAL_ARIA_LABEL — задаёт запасной `ariaLabel` превью Modal без заголовка.
@@ -184,17 +227,15 @@ const DEMO_MODAL_BODY_TEXT = 'Place your content here';
 
 /**
  * DEMO_MODAL_CARD_SUBTITLE — задаёт подзаголовок карточки Modal в витрине.
- * Длина как у подзаголовка Browser AI, чтобы шапки были одной высоты.
  */
 const DEMO_MODAL_CARD_SUBTITLE =
-  'Places a dialog over the page and holds focus there until you dismiss it.';
+  'Places a dialog over the page and holds focus there until you dismiss it';
 
 /**
  * DEMO_TOAST_CARD_SUBTITLE — задаёт подзаголовок карточки Toast в витрине.
- * Длина как у подзаголовка Browser AI, чтобы шапки были одной высоты.
  */
 const DEMO_TOAST_CARD_SUBTITLE =
-  'Shows a brief notice over the page, then leaves on its own after a while.';
+  'Shows a brief notice over the page, then leaves on its own after a while';
 
 /**
  * PROGRESS_WIDGET_TITLE_ID — задаёт id заголовка виджета ProgressBar в витрине.
@@ -227,6 +268,175 @@ const FIELDSET_DEMO_NAME = 'showcase-fieldset-demo';
 const TEXT_DEMO_INLINE_SIZE = '12rem';
 
 /**
+ * TEXT_DEMO_ACTION_WORDS — задаёт слова фразы, которые заменяет действие.
+ * Используется в стартовом тексте виджета Text и в `resolveTextDemoChildren`.
+ */
+const TEXT_DEMO_ACTION_WORDS = 'show ellipsis';
+
+/**
+ * TEXT_DEMO_ELLIPSIS — задаёт знак обрезки в превью Text.
+ * Используется в `resolveTextDemoVisiblePrefix` и `resolveTextDemoChildren`.
+ */
+const TEXT_DEMO_ELLIPSIS = '…';
+
+let textDemoMeasureContext: CanvasRenderingContext2D | null = null;
+
+/**
+ * measureTextDemoWidth — вычисляет ширину текста в заданном шрифте.
+ *
+ * @param text измеряемый текст
+ * @param font шрифт измерения
+ * @returns ширина текста в px или `undefined`, если холст недоступен
+ */
+function measureTextDemoWidth(text: string, font: string): number | undefined {
+  if (text === '') {
+    return 0;
+  }
+
+  if (textDemoMeasureContext === null) {
+    textDemoMeasureContext = document.createElement('canvas').getContext('2d');
+  }
+
+  if (textDemoMeasureContext === null) {
+    return undefined;
+  }
+
+  textDemoMeasureContext.font = font;
+
+  return textDemoMeasureContext.measureText(text).width;
+}
+
+/**
+ * resolveTextDemoMeasureFont — возвращает шрифт измерения превью Text.
+ *
+ * @param size размер текста
+ * @param italic включает курсив
+ * @returns строка шрифта для измерения ширины
+ */
+function resolveTextDemoMeasureFont(size: TextSizePreset, italic: boolean): string {
+  const preset = textSizePresets[size];
+  const rootFontSizePx = Number.parseFloat(
+    getComputedStyle(document.documentElement).fontSize
+  );
+  const fontSizePx = Number.parseFloat(preset.fontSize) * rootFontSizePx;
+  const fontStyle = italic ? 'italic' : 'normal';
+  const fontFamily = getComputedStyle(document.body).fontFamily;
+
+  return `${fontStyle} ${preset.fontWeight} ${fontSizePx}px ${fontFamily}`;
+}
+
+/**
+ * resolveTextDemoInlineSizePx — возвращает ширину превью Text в px.
+ *
+ * @returns ширина узкой строки превью в px
+ */
+function resolveTextDemoInlineSizePx(): number {
+  const rootFontSizePx = Number.parseFloat(
+    getComputedStyle(document.documentElement).fontSize
+  );
+
+  return Number.parseFloat(TEXT_DEMO_INLINE_SIZE) * rootFontSizePx;
+}
+
+/**
+ * resolveTextDemoVisiblePrefix — возвращает префикс фразы, который вместе со знаком
+ * обрезки помещается в ширину превью.
+ * Режет по целой букве.
+ *
+ * @param text фраза превью
+ * @param size размер текста
+ * @param italic включает курсив
+ * @returns префикс без знака обрезки
+ */
+function resolveTextDemoVisiblePrefix(
+  text: string,
+  size: TextSizePreset,
+  italic: boolean
+): string {
+  if (typeof document === 'undefined') {
+    return text.trimEnd();
+  }
+
+  const font = resolveTextDemoMeasureFont(size, italic);
+  const ellipsisWidth = measureTextDemoWidth(TEXT_DEMO_ELLIPSIS, font);
+  const limit = resolveTextDemoInlineSizePx();
+
+  if (ellipsisWidth === undefined) {
+    return text.trimEnd();
+  }
+
+  let end = text.length;
+
+  while (end > 0) {
+    const prefix = text.slice(0, end).trimEnd();
+    const prefixWidth = measureTextDemoWidth(prefix, font);
+
+    if (prefixWidth !== undefined && Math.ceil(prefixWidth + ellipsisWidth) <= limit) {
+      return prefix;
+    }
+
+    end -= 1;
+  }
+
+  return '';
+}
+
+/**
+ * resolveTextDemoChildren — преобразует текст превью в содержимое карточки Text.
+ * При обрезке ставит после префикса действие со знаком обрезки. Без обрезки ставит
+ * действие вместо `TEXT_DEMO_ACTION_WORDS`. Нет этих слов во фразе — возвращает
+ * фразу как есть.
+ * Не переносить в продуктовый код: в продукте однострочное обрезание делает проп
+ * `ellipsis` через CSS. Здесь витрина подставляет готовую фразу с действием.
+ *
+ * @param sample фраза превью
+ * @param actionLabel подпись действия
+ * @param ellipsis включает обрезку фразы
+ * @param size размер текста
+ * @param italic включает курсив
+ * @param showUnderline включает линию действия
+ * @param onClick обработчик клика по действию
+ * @returns содержимое карточки Text
+ */
+function resolveTextDemoChildren(
+  sample: string,
+  actionLabel: string,
+  ellipsis: boolean,
+  size: TextSizePreset,
+  italic: boolean,
+  showUnderline: boolean,
+  onClick: () => void
+): ReactNode {
+  if (ellipsis) {
+    return [
+      resolveTextDemoVisiblePrefix(sample, size, italic),
+      <TextAction key="text-demo-action" showUnderline={showUnderline} onClick={onClick}>
+        {TEXT_DEMO_ELLIPSIS}
+      </TextAction>,
+    ];
+  }
+
+  const slot = sample.indexOf(TEXT_DEMO_ACTION_WORDS);
+
+  if (slot === -1) {
+    return sample;
+  }
+
+  const action =
+    actionLabel.trim() !== '' ? (
+      <TextAction key="text-demo-action" showUnderline={showUnderline} onClick={onClick}>
+        {actionLabel}
+      </TextAction>
+    ) : null;
+
+  return [
+    sample.slice(0, slot),
+    action,
+    sample.slice(slot + TEXT_DEMO_ACTION_WORDS.length),
+  ];
+}
+
+/**
  * WidgetSettingsKey — представляет ключ активной панели настроек виджета в витрине.
  */
 type WidgetSettingsKey =
@@ -243,6 +453,7 @@ type WidgetSettingsKey =
   | 'progress'
   | 'radio-button'
   | 'range-input'
+  | 'rating'
   | 'search-field'
   | 'segment-button'
   | 'spinner'
@@ -282,6 +493,7 @@ const SETTINGS_TITLES: Record<WidgetSettingsKey, string> = {
   card: 'Card',
   text: 'Text',
   toolbar: 'Toolbar',
+  rating: 'Rating',
 };
 
 /**
@@ -385,39 +597,40 @@ const DEFAULT_ICON_STATE: IconWidgetState = {
  * Используется при инициализации состояния в `ShowcasePage`.
  */
 const DEFAULT_LISTBOX_STATE: ListboxWidgetState = {
-  appearance: 'field',
+  appearance: DEFAULT_LISTBOX_APPEARANCE,
   borderTone: DEFAULT_TONE,
-  disabled: false,
+  disabled: DEFAULT_LISTBOX_DISABLED,
   emptyMessage: DEFAULT_LISTBOX_EMPTY_MESSAGE,
   iconFill: DEFAULT_TONE,
   iconKey: 'chevron-down',
   iconPosition: DEFAULT_ICON_POSITION,
   iconTone: DEFAULT_TONE,
-  inlineCheckbox: false,
+  inlineCheckbox: DEFAULT_LISTBOX_INLINE_CHECKBOX,
   label: 'Label:',
-  multiple: false,
+  multiple: DEFAULT_LISTBOX_MULTIPLE,
   placeholder: DEFAULT_LISTBOX_PLACEHOLDER,
   searchFieldBorderTone: DEFAULT_TONE,
   searchFieldIconFill: DEFAULT_TONE,
   searchIconKey: 'search',
-  searchFieldIconPosition: 'start',
+  searchFieldIconPosition: DEFAULT_SEARCH_FIELD_ICON_POSITION,
   searchFieldIconTone: DEFAULT_TONE,
   searchPlaceholder: DEFAULT_SEARCH_FIELD_PLACEHOLDER,
   searchShape: DEFAULT_SHAPE_PRESET,
-  showSearchFieldBorder: true,
-  showSearchFieldClearButton: true,
-  searchDisabled: false,
-  showSearchFieldIcon: false,
-  showSearchFieldOutline: false,
+  showSearchFieldBorder: DEFAULT_LISTBOX_SEARCH_SHOW_BORDER,
+  showSearchFieldClearButton: DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON,
+  searchDisabled: DEFAULT_LISTBOX_SEARCH_DISABLED,
+  showSearchFieldIcon: DEFAULT_LISTBOX_SEARCH_SHOW_ICON,
+  showSearchFieldOutline: DEFAULT_LISTBOX_SEARCH_SHOW_OUTLINE,
   showSearchFieldShadow: DEFAULT_SHOW_SHADOW,
   searchSize: DEFAULT_SIZE_PRESET,
   shape: DEFAULT_SHAPE_PRESET,
   showBorder: DEFAULT_SHOW_BORDER,
-  showClearButton: false,
-  showSearchField: false,
+  showClearButton: DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON,
+  showSearchField: DEFAULT_LISTBOX_SHOW_SEARCH,
   showShadow: DEFAULT_SHOW_SHADOW,
   size: DEFAULT_SIZE_PRESET,
-  tinted: true,
+  tinted: DEFAULT_LISTBOX_TINTED,
+  title: 'Open list',
   value: '',
   withIcon: false,
 };
@@ -497,14 +710,18 @@ const DEFAULT_DATE_RANGE_INPUT_STATE: DateRangeInputWidgetState = {
   borderTone: DEFAULT_TONE,
   buttonShape: DEFAULT_SHAPE_PRESET,
   dayShape: DEFAULT_SHAPE_PRESET,
+  commitLabel: DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
   disabled: false,
+  dismissLabel: DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
   endDay: '',
   label: 'Label:',
   maxDay: todayUtc(),
   minDay: '',
+  resetLabel: DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
   shape: DEFAULT_SHAPE_PRESET,
   size: DEFAULT_SIZE_PRESET,
   startDay: '',
+  weekdayLabels: DEFAULT_CALENDAR_WEEKDAY_LABELS,
   withClear: false,
 };
 
@@ -672,6 +889,7 @@ const DEFAULT_TABLE_STATE: TableWidgetState = {
   continuousNumbering: false,
   editable: true,
   editHint: DEFAULT_EDIT_HINT,
+  editLabel: DEFAULT_TABLE_EDIT_LABEL,
   hoverHighlight: DEFAULT_TABLE_HOVER_HIGHLIGHT,
   showBorder: DEFAULT_TABLE_SHOW_BORDER,
   showIndexColumn: true,
@@ -735,11 +953,21 @@ const DEFAULT_CARD_STATE: CardWidgetState = {
  */
 const DEFAULT_TEXT_STATE: TextWidgetState = {
   align: undefined,
-  children: 'Sample text line long enough to show ellipsis in the demo',
+  children: `Sample text line long enough to ${TEXT_DEMO_ACTION_WORDS} in the demo`,
   ellipsis: false,
   italic: false,
   size: 'normal',
   tone: DEFAULT_TONE,
+};
+
+/**
+ * DEFAULT_TEXT_ACTION_STATE — задаёт начальное состояние действия в превью Text по умолчанию.
+ * Подпись — `show ellipsis`.
+ * Используется при инициализации состояния в `ShowcasePage`.
+ */
+const DEFAULT_TEXT_ACTION_STATE: TextActionWidgetState = {
+  children: TEXT_DEMO_ACTION_WORDS,
+  showUnderline: DEFAULT_TEXT_ACTION_SHOW_UNDERLINE,
 };
 
 /**
@@ -752,44 +980,51 @@ const DEFAULT_TOOLBAR_STATE: ToolbarWidgetState = {
     {
       active: false,
       disabled: false,
-      iconKey: 'clock',
-      iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
-      title: '',
-    },
-    {
-      active: false,
-      disabled: false,
-      iconKey: 'episode',
-      iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
-      title: '',
-    },
-    {
-      active: false,
-      disabled: false,
       iconKey: 'subtitles',
       iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
-      title: '',
+      title: 'Subtitles',
+    },
+    {
+      active: false,
+      disabled: false,
+      iconKey: 'voice-channel',
+      iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
+      title: 'Audio track',
     },
     {
       active: false,
       disabled: false,
       iconKey: 'dual',
       iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
-      title: '',
+      title: 'Bilingual mode',
+    },
+    {
+      active: false,
+      disabled: false,
+      iconKey: 'episode',
+      iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
+      title: 'Chapters',
+    },
+    {
+      active: false,
+      disabled: false,
+      iconKey: 'clock',
+      iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
+      title: 'Timestamps',
     },
     {
       active: false,
       disabled: false,
       iconKey: 'copy',
       iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
-      title: '',
+      title: 'Copy transcript',
     },
     {
       active: false,
       disabled: false,
       iconKey: 'download',
       iconPadding: getIconPadding(DEFAULT_SIZE_PRESET),
-      title: '',
+      title: 'Download transcript',
     },
   ],
   background: DEFAULT_SURFACE_BACKGROUND,
@@ -798,14 +1033,15 @@ const DEFAULT_TOOLBAR_STATE: ToolbarWidgetState = {
   searchDisabled: false,
   searchFieldIconFill: DEFAULT_TONE,
   searchIconKey: 'search',
-  searchFieldIconPosition: 'start',
+  searchFieldIconPosition: DEFAULT_SEARCH_FIELD_ICON_POSITION,
   searchFieldIconTone: DEFAULT_TONE,
   searchPlaceholder: DEFAULT_SEARCH_FIELD_PLACEHOLDER,
   searchShape: DEFAULT_SHAPE_PRESET,
-  showSearchFieldBorder: true,
-  showSearchFieldClearButton: true,
+  searchTitle: DEFAULT_TOOLBAR_SEARCH_TITLE,
+  showSearchFieldBorder: DEFAULT_SHOW_BORDER,
+  showSearchFieldClearButton: DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON,
   showSearchFieldIcon: false,
-  showSearchFieldOutline: true,
+  showSearchFieldOutline: DEFAULT_SEARCH_FIELD_SHOW_OUTLINE,
   showSearchFieldShadow: DEFAULT_SHOW_SHADOW,
   searchSize: DEFAULT_SIZE_PRESET,
   shape: DEFAULT_SHAPE_PRESET,
@@ -816,6 +1052,25 @@ const DEFAULT_TOOLBAR_STATE: ToolbarWidgetState = {
   showShadow: DEFAULT_SHOW_SHADOW,
   size: DEFAULT_SIZE_PRESET,
   tinted: true,
+};
+
+/**
+ * DEFAULT_RATING_STATE — задаёт начальное состояние виджета Rating по умолчанию.
+ * Используется при инициализации состояния в `ShowcasePage`.
+ */
+const DEFAULT_RATING_STATE: RatingWidgetState = {
+  background: DEFAULT_SURFACE_BACKGROUND,
+  borderTone: DEFAULT_TONE,
+  description: DEFAULT_RATING_DESCRIPTION,
+  highRatingHref: 'https://example.com/high-rating',
+  lowRatingHref: 'https://example.com/low-rating',
+  shape: DEFAULT_SHAPE_PRESET,
+  showBorder: DEFAULT_SHOW_BORDER,
+  showShadow: DEFAULT_SHOW_SHADOW,
+  size: DEFAULT_SIZE_PRESET,
+  threshold: DEFAULT_RATING_THRESHOLD,
+  title: DEFAULT_RATING_TITLE,
+  titleInline: DEFAULT_RATING_TITLE_INLINE,
 };
 
 /**
@@ -890,8 +1145,9 @@ function resolveDemoRangeValidationMessage(
  *
  * Как работает:
  * 1. При виде `icon` отдаёт `appearance: 'icon'` и пакет пропсов рамки
- *    через `resolveBorderProps`. У Listbox добавляет глиф `icon`. У LocalePicker
- *    глиф не передаётся: кнопку рисует компонент
+ *    через `resolveBorderProps`. У Listbox, где в состоянии есть `iconKey`,
+ *    добавляет глиф `icon` и непустой `title`. Пустой `title` не передаёт.
+ *    У LocalePicker глиф и `title` не передаёт: кнопку рисует компонент
  * 2. При виде `field` и включённом `showClearButton` отдаёт вид `field`, пропы шеврона
  *    и `showClearButton: true`
  * 3. Иначе при виде `field` отдаёт вид `field` и пропы шеврона без `showClearButton`
@@ -910,9 +1166,18 @@ function resolveListboxAppearanceProps(
     );
 
     if ('iconKey' in state) {
+      if (state.title === '') {
+        return {
+          appearance: 'icon',
+          icon: getIcon(state.iconKey),
+          ...borderProps,
+        };
+      }
+
       return {
         appearance: 'icon',
         icon: getIcon(state.iconKey),
+        title: state.title,
         ...borderProps,
       };
     }
@@ -1010,6 +1275,48 @@ function resolveSearchProps(
 }
 
 /**
+ * resolveToolbarPreviewSearchProps — возвращает пропсы поиска превью Toolbar.
+ * Капсула `pill` и выключенный поиск отдают только выключенное поле.
+ * Пустое поле подсказки проп не передаёт. Непустая подсказка задаёт и `searchTitle`,
+ * и `searchAriaLabel`: это сборка витрины, не вывод подсказки из имени внутри компонента.
+ * Не переносить в продуктовый код: в продукте подсказка и имя задаются раздельно.
+ *
+ * @param state состояние панели Toolbar
+ * @returns пропсы поиска превью
+ */
+function resolveToolbarPreviewSearchProps(state: ToolbarWidgetState) {
+  if (state.shape === 'pill' || !state.showSearchField) {
+    return {
+      shape: state.shape,
+      showSearchField: false as const,
+    };
+  }
+
+  const searchProps = resolveSearchProps(state);
+
+  if (!searchProps.showSearchField) {
+    return {
+      shape: state.shape,
+      showSearchField: false as const,
+    };
+  }
+
+  if (state.searchTitle.trim() === '') {
+    return {
+      shape: state.shape,
+      ...searchProps,
+    };
+  }
+
+  return {
+    shape: state.shape,
+    ...searchProps,
+    searchAriaLabel: state.searchTitle,
+    searchTitle: state.searchTitle,
+  };
+}
+
+/**
  * ShowcasePage — отображает витрину дизайн-системы с превью виджетов и панелью настроек.
  *
  * @example
@@ -1057,8 +1364,56 @@ export function ShowcasePage() {
   const [modal, setModal] = useState<ModalWidgetState>(DEFAULT_MODAL_STATE);
   const [card, setCard] = useState<CardWidgetState>(DEFAULT_CARD_STATE);
   const [text, setText] = useState<TextWidgetState>(DEFAULT_TEXT_STATE);
+  const [textAction, setTextAction] = useState<TextActionWidgetState>(
+    DEFAULT_TEXT_ACTION_STATE
+  );
   const [toolbar, setToolbar] = useState<ToolbarWidgetState>(DEFAULT_TOOLBAR_STATE);
+  const [rating, setRating] = useState<RatingWidgetState>(DEFAULT_RATING_STATE);
+  const [ratingInlineSizePx, setRatingInlineSizePx] = useState(0);
+  const ratingRef = useRef<HTMLDivElement>(null);
+  const ratingInlineSizeRef = useRef(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  /**
+   * Замеряет ширину оценки на витрине для порога колонки.
+   * Берёт ширину самой оценки, без запаса в кеглях.
+   * Записывает ширину в состояние до отрисовки, чтобы сетка получила её сразу.
+   * Не переносить в продуктовый код: в продукте ширина оценки не задаёт колонку страницы.
+   */
+  useLayoutEffect(() => {
+    const node = ratingRef.current;
+
+    if (!node) {
+      return;
+    }
+
+    const observed = node;
+    const resizeObserver = new ResizeObserver((entries) => {
+      const entry = entries[0];
+
+      if (!entry || entry.target !== observed) {
+        return;
+      }
+
+      const next = entry.borderBoxSize[0]?.inlineSize;
+
+      if (next === undefined || ratingInlineSizeRef.current === next) {
+        return;
+      }
+
+      ratingInlineSizeRef.current = next;
+
+      flushSync(() => {
+        setRatingInlineSizePx(next);
+      });
+    });
+
+    resizeObserver.observe(observed, { box: 'border-box' });
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   // Настройки шапки приоритетны: при открытии сбрасывают выбранный виджет, чтобы
   // Sidebar имел один источник содержимого. Иначе карточка виджета осталась бы
@@ -1076,6 +1431,11 @@ export function ShowcasePage() {
   const isSettingsOpen = activeSettings !== null;
   // Настройки шапки и настройки виджета делят один Sidebar, но не показываются вместе.
   const isPanelOpen = isSettingsOpen || isHeaderSettingsOpen;
+  const showcaseColumnMin = resolveShowcaseWidgetMinInlineSize(
+    toolbar.size,
+    ratingInlineSizePx
+  );
+  const showcasePanelBreakpoint = resolveShowcasePanelBreakpoint(showcaseColumnMin);
   const panelTitle = isHeaderSettingsOpen
     ? 'Header'
     : activeSettings
@@ -1167,7 +1527,18 @@ export function ShowcasePage() {
   const updateModal = createWidgetStateUpdater(setModal);
   const updateCard = createWidgetStateUpdater(setCard);
   const updateText = createWidgetStateUpdater(setText);
+  const updateTextAction = createWidgetStateUpdater(setTextAction);
   const updateToolbar = createWidgetStateUpdater(setToolbar);
+  const updateRating = createWidgetStateUpdater(setRating);
+
+  /**
+   * handleTextActionClick — переключает обрезку в превью Text.
+   * Не переносить в продуктовый код: в продукте клик выполняет действие вызывающего
+   * кода. Здесь клик переключает флажок Show ellipsis. Свой текст человека клик не затирает.
+   */
+  function handleTextActionClick(): void {
+    updateText('ellipsis', !text.ellipsis);
+  }
 
   function renderSettingsPanel(): ReactNode {
     if (activeSettings === 'input') {
@@ -1259,11 +1630,22 @@ export function ShowcasePage() {
     }
 
     if (activeSettings === 'text') {
-      return <TextSettings state={text} onChange={updateText} />;
+      return (
+        <TextSettings
+          state={text}
+          textAction={textAction}
+          onChange={updateText}
+          onTextActionChange={updateTextAction}
+        />
+      );
     }
 
     if (activeSettings === 'toolbar') {
       return <ToolbarSettings state={toolbar} onChange={updateToolbar} />;
+    }
+
+    if (activeSettings === 'rating') {
+      return <RatingSettings state={rating} onChange={updateRating} />;
     }
 
     return null;
@@ -1415,26 +1797,59 @@ export function ShowcasePage() {
     toolbar.showActionBorder,
     toolbar.showActionShadow
   );
+  const ratingBorderProps: BorderProps = resolveBorderProps(
+    rating.showBorder,
+    rating.borderTone,
+    rating.showShadow
+  );
+  const ratingDescription =
+    rating.description.trim() !== '' ? rating.description : undefined;
+  // Пустой заголовок не передаётся: на карточке снова Rate us.
+  // titleInline передаётся и при пустом поле.
+  const ratingTitleProps =
+    rating.title.trim() !== ''
+      ? { title: rating.title, titleInline: rating.titleInline }
+      : { titleInline: rating.titleInline };
+  // Пустое поле панели не стирает день: в календарь уходит слово по умолчанию.
+  const dateRangeWeekdayLabels = [
+    dateRangeInput.weekdayLabels[0].trim() === ''
+      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[0]
+      : dateRangeInput.weekdayLabels[0],
+    dateRangeInput.weekdayLabels[1].trim() === ''
+      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[1]
+      : dateRangeInput.weekdayLabels[1],
+    dateRangeInput.weekdayLabels[2].trim() === ''
+      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[2]
+      : dateRangeInput.weekdayLabels[2],
+    dateRangeInput.weekdayLabels[3].trim() === ''
+      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[3]
+      : dateRangeInput.weekdayLabels[3],
+    dateRangeInput.weekdayLabels[4].trim() === ''
+      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[4]
+      : dateRangeInput.weekdayLabels[4],
+    dateRangeInput.weekdayLabels[5].trim() === ''
+      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[5]
+      : dateRangeInput.weekdayLabels[5],
+    dateRangeInput.weekdayLabels[6].trim() === ''
+      ? DEFAULT_CALENDAR_WEEKDAY_LABELS[6]
+      : dateRangeInput.weekdayLabels[6],
+  ] as const;
+  const textDemoChildren = resolveTextDemoChildren(
+    text.children,
+    textAction.children,
+    text.ellipsis,
+    text.size,
+    text.italic,
+    textAction.showUnderline,
+    handleTextActionClick
+  );
   /**
-   * toolbarActions — формирует ряд превью Toolbar: часы, эпизод, субтитры,
-   * LocalePicker вида `icon` на месте четвёртого окна, двойной текст,
-   * копирование и скачивание.
+   * toolbarActions — формирует ряд из семи иконок превью Toolbar.
+   * Порядок: субтитры, голосовой канал, два языка, эпизоды, часы, копирование
+   * и скачивание.
    * Используется в превью виджета Toolbar.
    */
-  const toolbarIconActions = toolbar.actions.map(resolveIconButtonRowAction);
-  const toolbarActions: IconButtonRowAction[] = [
-    ...toolbarIconActions.slice(0, 3),
-    {
-      control: (
-        <LocalePicker
-          appearance="icon"
-          label="Language:"
-          options={LOCALE_SLICE_OPTIONS}
-        />
-      ),
-    },
-    ...toolbarIconActions.slice(3),
-  ];
+  const toolbarActions = toolbar.actions.map(resolveIconButtonRowAction);
   const inputBorderProps: BorderProps = resolveBorderProps(
     input.showBorder,
     input.borderTone,
@@ -1632,6 +2047,7 @@ export function ShowcasePage() {
       <Sidebar
         id={SHOWCASE_SIDEBAR_ID}
         open={isPanelOpen}
+        panelBreakpoint={showcasePanelBreakpoint}
         sidebarContent={
           <ScrollPort paddingBlockEnd={4}>
             {(isHeaderSettingsOpen && (
@@ -1649,22 +2065,25 @@ export function ShowcasePage() {
             не срезается, бегунок почти совпадает с контентом. */}
         <Card as="section" maxBlockSize="100%">
           <ScrollPort paddingBlock={4}>
-            <StyledShowcaseWidgets>
+            <StyledShowcaseWidgets
+              minInlineSize={showcaseColumnMin}
+              panelBreakpoint={showcasePanelBreakpoint}
+            >
               {renderWidgetCard('table', <TableDemo settings={table} />, true)}
 
               {renderWidgetCard(
                 'text',
                 <Text
                   align={text.align}
-                  ellipsis={text.ellipsis}
                   inlineSize={TEXT_DEMO_INLINE_SIZE}
                   italic={text.italic}
                   minInlineSize="0"
                   placeSelf="center"
                   size={text.size}
                   tone={text.tone}
+                  whiteSpace={text.ellipsis ? 'nowrap' : undefined}
                 >
-                  {text.children}
+                  {textDemoChildren}
                 </Text>
               )}
 
@@ -1697,6 +2116,18 @@ export function ShowcasePage() {
                 />
               )}
 
+              {renderWidgetCard(
+                'spinner',
+                <Spinner
+                  minBlockSize="0"
+                  placeSelf="center"
+                  reserveTextSpace={spinner.reserveTextSpace}
+                  size={spinner.size}
+                  tone={spinner.tone}
+                  {...spinnerTextProps}
+                />
+              )}
+
               {/* Капсула pill: в превью уходят shape и showSearchField false. */}
               {renderWidgetCard(
                 'toolbar',
@@ -1708,9 +2139,25 @@ export function ShowcasePage() {
                   size={toolbar.size}
                   {...toolbarActionBorderProps}
                   {...toolbarBorderProps}
-                  {...(toolbar.shape === 'pill'
-                    ? { shape: toolbar.shape, showSearchField: false }
-                    : { shape: toolbar.shape, ...resolveSearchProps(toolbar) })}
+                  {...resolveToolbarPreviewSearchProps(toolbar)}
+                />
+              )}
+
+              {renderWidgetCard(
+                'rating',
+                <Rating
+                  background={rating.background}
+                  description={ratingDescription}
+                  highRatingHref={rating.highRatingHref}
+                  lowRatingHref={rating.lowRatingHref}
+                  placeSelf="center"
+                  ref={ratingRef}
+                  shape={rating.shape}
+                  size={rating.size}
+                  starNames={DEFAULT_RATING_STAR_NAMES}
+                  threshold={rating.threshold}
+                  {...ratingBorderProps}
+                  {...ratingTitleProps}
                 />
               )}
 
@@ -1919,15 +2366,19 @@ export function ShowcasePage() {
                   alignSelf="center"
                   borderTone={dateRangeInput.borderTone}
                   buttonShape={dateRangeInput.buttonShape}
+                  commitLabel={dateRangeInput.commitLabel || undefined}
                   dayShape={dateRangeInput.dayShape}
                   disabled={dateRangeInput.disabled}
+                  dismissLabel={dateRangeInput.dismissLabel || undefined}
                   endDay={dateRangeInput.endDay}
                   label={dateRangeInput.label || undefined}
                   maxDay={dateRangeInput.maxDay || undefined}
                   minDay={dateRangeInput.minDay || undefined}
+                  resetLabel={dateRangeInput.resetLabel || undefined}
                   shape={dateRangeInput.shape}
                   size={dateRangeInput.size}
                   startDay={dateRangeInput.startDay}
+                  weekdayLabels={dateRangeWeekdayLabels}
                   onEndDayChange={(value) => updateDateRangeInput('endDay', value)}
                   onStartDayChange={(value) => updateDateRangeInput('startDay', value)}
                   {...dateRangeInputClearProps}
@@ -2062,18 +2513,6 @@ export function ShowcasePage() {
                 />,
                 false,
                 PROGRESS_WIDGET_TITLE_ID
-              )}
-
-              {renderWidgetCard(
-                'spinner',
-                <Spinner
-                  minBlockSize="0"
-                  placeSelf="center"
-                  reserveTextSpace={spinner.reserveTextSpace}
-                  size={spinner.size}
-                  tone={spinner.tone}
-                  {...spinnerTextProps}
-                />
               )}
 
               {renderWidgetCard(

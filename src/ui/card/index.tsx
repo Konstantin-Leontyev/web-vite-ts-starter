@@ -30,12 +30,14 @@
  * 1. Экспортировать полиморфный компонент Card
  * 2. Типизировать пропсы через `CardProps`
  * 3. Реэкспортировать публичное API стилей: `CARD_HEADER_ACTION_SIZE_PRESET`
+ *    и `CARD_PADDING`
  * 4. Связывать имя области с заголовком через `aria-labelledby`, когда у корня есть роль
  *
  * Потребители:
  *  - `src/ui/modal/index.tsx` — рендерит Card внутри модального диалога
  *  - `src/ui/sidebar/index.tsx` — рендерит Card внутри выезжающей панели
  *  - страницы приложения, например ProfileMenu — показывают карточки с шапкой и действиями
+ *  - `src/pages/showcase/showcase.styles.ts` — читает `CARD_PADDING` в пороге колонки
  *  - `src/pages/showcase` — демонстрирует состояния в витрине
  */
 
@@ -216,4 +218,4 @@ function Card<T extends CardHtmlTag = 'div'>({
   );
 }
 
-export { CARD_HEADER_ACTION_SIZE_PRESET, Card };
+export { CARD_HEADER_ACTION_SIZE_PRESET, CARD_PADDING, Card };

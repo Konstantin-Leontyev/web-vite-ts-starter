@@ -17,6 +17,10 @@
  *  - подпись над полем через проп `label`
  *  - текстовую метку через проп `aria-label`
  *  - id метки через проп `aria-labelledby`
+ *  - доступное имя кнопки уменьшения через проп `decreaseAriaLabel`. Без пропа —
+ *    `Decrease`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки увеличения через проп `increaseAriaLabel`. Без пропа —
+ *    `Increase`. Пустая строка остаётся этой фразой
  *
  * Основные задачи:
  * 1. Экспортировать компонент Stepper
@@ -71,16 +75,16 @@ const DEFAULT_STEPPER_STEP = 1;
 const STEPPER_SUFFIX_TONE: TextTonePreset = 'muted';
 
 /**
- * DECREASE_LABEL — задаёт текст `aria-label` кнопки уменьшения.
- * Используется для доступного имени стрелки вниз.
+ * DEFAULT_STEPPER_DECREASE_ARIA_LABEL — задаёт доступное имя кнопки уменьшения по умолчанию.
+ * Используется, когда вызывающий код не передал проп `decreaseAriaLabel`.
  */
-const DECREASE_LABEL = 'Decrease';
+const DEFAULT_STEPPER_DECREASE_ARIA_LABEL = 'Decrease';
 
 /**
- * INCREASE_LABEL — задаёт текст `aria-label` кнопки увеличения.
- * Используется для доступного имени стрелки вверх.
+ * DEFAULT_STEPPER_INCREASE_ARIA_LABEL — задаёт доступное имя кнопки увеличения по умолчанию.
+ * Используется, когда вызывающий код не передал проп `increaseAriaLabel`.
  */
-const INCREASE_LABEL = 'Increase';
+const DEFAULT_STEPPER_INCREASE_ARIA_LABEL = 'Increase';
 
 /**
  * STEPPER_CHEVRON_ICON_PADDING — задаёт отступ окна Icon шеврона внутри половинки
@@ -116,6 +120,10 @@ type StepperAccessibleName =
 /**
  * StepperProps — представляет пропсы компонента Stepper.
  *
+ * @property decreaseAriaLabel — доступное имя кнопки уменьшения. Без пропа — `Decrease`.
+ *   Пустая строка остаётся этой фразой
+ * @property increaseAriaLabel — доступное имя кнопки увеличения. Без пропа — `Increase`.
+ *   Пустая строка остаётся этой фразой
  * @property max — верхняя граница значения
  * @property min — нижняя граница значения
  * @property onChange — обработчик изменения значения
@@ -126,6 +134,8 @@ type StepperAccessibleName =
  */
 type StepperProps = StepperStyleProps &
   StepperAccessibleName & {
+    decreaseAriaLabel?: string;
+    increaseAriaLabel?: string;
     max?: number;
     min?: number;
     onChange: (value: number) => void;
@@ -164,7 +174,9 @@ function Stepper({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledBy,
   borderTone,
+  decreaseAriaLabel,
   disabled,
+  increaseAriaLabel,
   label,
   max,
   min,
@@ -371,7 +383,11 @@ function Stepper({
 
         <StyledStepperSpin size={size}>
           <StyledStepperButton
-            aria-label={INCREASE_LABEL}
+            aria-label={
+              increaseAriaLabel !== undefined && increaseAriaLabel.trim() !== ''
+                ? increaseAriaLabel
+                : DEFAULT_STEPPER_INCREASE_ARIA_LABEL
+            }
             disabled={disabled}
             size={size}
             type="button"
@@ -390,7 +406,11 @@ function Stepper({
             </Icon>
           </StyledStepperButton>
           <StyledStepperButton
-            aria-label={DECREASE_LABEL}
+            aria-label={
+              decreaseAriaLabel !== undefined && decreaseAriaLabel.trim() !== ''
+                ? decreaseAriaLabel
+                : DEFAULT_STEPPER_DECREASE_ARIA_LABEL
+            }
             disabled={disabled}
             size={size}
             type="button"

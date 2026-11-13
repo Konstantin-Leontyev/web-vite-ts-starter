@@ -10,6 +10,8 @@
  *  - рамку вида `icon` через проп `showBorder`
  *  - тень вида `icon` через проп `showShadow`
  *  - запасной глиф вида `icon` через проп `icon`. У вида `field` не рисуется
+ *  - текст нативного tooltip кнопки вида `icon` через проп `title`. У вида `field`
+ *    пропа нет
  *  - тон рамки через проп `borderTone`
  *  - тон глифа шеврона через проп `iconFill`. Только у вида `field`
  *  - позицию шеврона через проп `iconPosition`. Только у вида `field`
@@ -24,6 +26,10 @@
  *    кнопки вместе со значением. Вид `icon` собирает то же имя строкой
  *    `aria-label`, видимого текста нет
  *  - множественный выбор через проп `multiple`
+ *  - подпись счётчика нескольких выбранных строк через проп `selectedCountLabel`.
+ *    Без пропа — `count selected`. Вызывающий код заменяет функцию целиком.
+ *    Одна выбранная опция остаётся её подписью, ноль показывает плейсхолдер.
+ *    Пустая строка из функции счётчик не рисует. Без `multiple` не собирается
  *  - обработчик изменения значения через проп `onChange`
  *  - опции списка через проп `options`
  *  - плейсхолдер пустого триггера через проп `placeholder`
@@ -52,16 +58,21 @@
  *  - опциональный сброс выбора через проп `showClearButton`. Только у вида `field`.
  *    Базовая логика — шеврон. Кнопка сброса появляется при выборе, только когда
  *    проп включён
- *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа имя —
- *    `resolveClearAriaLabel`
+ *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа —
+ *    `Clear selection`. Пустая строка остаётся этой фразой
  *
  * Основные задачи:
  * 1. Экспортировать компонент Listbox
  * 2. Типизировать пропсы через `ListboxProps`
  * 3. Экспортировать типы `ListboxOption`, `ListboxMultipleProps`,
  *    `ListboxAppearance`, `ListboxAppearanceProps` и `ListboxSearchProps`
- * 4. Экспортировать дефолты `DEFAULT_LISTBOX_EMPTY_MESSAGE` и
- *    `DEFAULT_LISTBOX_PLACEHOLDER`
+ * 4. Экспортировать дефолты `DEFAULT_LISTBOX_APPEARANCE`,
+ *    `DEFAULT_LISTBOX_DISABLED`, `DEFAULT_LISTBOX_EMPTY_MESSAGE`,
+ *    `DEFAULT_LISTBOX_INLINE_CHECKBOX`, `DEFAULT_LISTBOX_MULTIPLE`,
+ *    `DEFAULT_LISTBOX_PLACEHOLDER`, `DEFAULT_LISTBOX_SEARCH_DISABLED`,
+ *    `DEFAULT_LISTBOX_SEARCH_SHOW_BORDER`, `DEFAULT_LISTBOX_SEARCH_SHOW_ICON`,
+ *    `DEFAULT_LISTBOX_SEARCH_SHOW_OUTLINE`, `DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON`,
+ *    `DEFAULT_LISTBOX_SHOW_SEARCH` и `DEFAULT_LISTBOX_TINTED`
  * 5. Выставлять `role` и `aria`-атрибуты триггера, панели и строк опций.
  *    Без поиска фокус панели — на строке, и наведение переносит заливку и фокус
  *    на одну строку. С поиском — каретка в поле, активная строка через
@@ -145,13 +156,13 @@ import {
  * DEFAULT_LISTBOX_APPEARANCE — задаёт вид триггера по умолчанию.
  * Используется, когда вызывающий код не передал проп `appearance`.
  */
-const DEFAULT_LISTBOX_APPEARANCE: ListboxAppearance = 'field';
+export const DEFAULT_LISTBOX_APPEARANCE: ListboxAppearance = 'field';
 
 /**
  * DEFAULT_LISTBOX_DISABLED — задаёт режим `disabled` по умолчанию.
  * Используется, когда вызывающий код не передал проп `disabled`.
  */
-const DEFAULT_LISTBOX_DISABLED = false;
+export const DEFAULT_LISTBOX_DISABLED = false;
 
 /**
  * DEFAULT_LISTBOX_EMPTY_MESSAGE — задаёт текст пустого результата поиска по умолчанию.
@@ -163,13 +174,21 @@ export const DEFAULT_LISTBOX_EMPTY_MESSAGE = 'Nothing found';
  * DEFAULT_LISTBOX_INLINE_CHECKBOX — задаёт режим чекбоксов в строках по умолчанию.
  * Используется, когда вызывающий код не передал проп `inlineCheckbox`.
  */
-const DEFAULT_LISTBOX_INLINE_CHECKBOX = false;
+export const DEFAULT_LISTBOX_INLINE_CHECKBOX = false;
 
 /**
  * DEFAULT_LISTBOX_MULTIPLE — задаёт режим множественного выбора по умолчанию.
  * Используется, когда вызывающий код не передал проп `multiple`.
  */
-const DEFAULT_LISTBOX_MULTIPLE = false;
+export const DEFAULT_LISTBOX_MULTIPLE = false;
+
+/**
+ * DEFAULT_LISTBOX_SELECTED_COUNT_LABEL — задаёт подпись счётчика `count selected` по умолчанию.
+ * Используется, когда вызывающий код не передал проп `selectedCountLabel`.
+ */
+const DEFAULT_LISTBOX_SELECTED_COUNT_LABEL = (count: number): string => {
+  return `${count} selected`;
+};
 
 /**
  * DEFAULT_LISTBOX_PLACEHOLDER — задаёт плейсхолдер пустого триггера по умолчанию.
@@ -181,13 +200,13 @@ export const DEFAULT_LISTBOX_PLACEHOLDER = 'Select…';
  * DEFAULT_LISTBOX_SEARCH_DISABLED — задаёт режим `searchDisabled` по умолчанию.
  * Используется, когда вызывающий код не передал проп `searchDisabled`.
  */
-const DEFAULT_LISTBOX_SEARCH_DISABLED = false;
+export const DEFAULT_LISTBOX_SEARCH_DISABLED = false;
 
 /**
  * DEFAULT_LISTBOX_SEARCH_SHOW_BORDER — задаёт режим рамки поля поиска по умолчанию.
  * Используется, когда вызывающий код не передал проп `showSearchFieldBorder`.
  */
-const DEFAULT_LISTBOX_SEARCH_SHOW_BORDER = true;
+export const DEFAULT_LISTBOX_SEARCH_SHOW_BORDER = true;
 
 /**
  * DEFAULT_LISTBOX_SEARCH_SHOW_SHADOW — задаёт режим тени рамки поля поиска по умолчанию.
@@ -199,13 +218,13 @@ const DEFAULT_LISTBOX_SEARCH_SHOW_SHADOW = true;
  * DEFAULT_LISTBOX_SEARCH_SHOW_ICON — задаёт режим показа иконки поля поиска по умолчанию.
  * Используется, когда вызывающий код не передал проп `showSearchFieldIcon`.
  */
-const DEFAULT_LISTBOX_SEARCH_SHOW_ICON = false;
+export const DEFAULT_LISTBOX_SEARCH_SHOW_ICON = false;
 
 /**
  * DEFAULT_LISTBOX_SEARCH_SHOW_OUTLINE — задаёт режим обводки фокуса поля поиска по умолчанию.
  * Используется, когда вызывающий код не передал проп `showSearchFieldOutline`.
  */
-const DEFAULT_LISTBOX_SEARCH_SHOW_OUTLINE = false;
+export const DEFAULT_LISTBOX_SEARCH_SHOW_OUTLINE = false;
 
 /**
  * DEFAULT_LISTBOX_SHOW_BORDER — задаёт режим рамки вида `icon` по умолчанию.
@@ -217,19 +236,25 @@ const DEFAULT_LISTBOX_SHOW_BORDER = DEFAULT_SHOW_BORDER;
  * DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON — задаёт режим показа кнопки сброса выбора по умолчанию.
  * Используется, когда вызывающий код не передал проп `showClearButton`.
  */
-const DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON = false;
+export const DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON = false;
+
+/**
+ * DEFAULT_LISTBOX_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса выбора по умолчанию.
+ * Используется, когда вызывающий код не передал проп `clearAriaLabel`.
+ */
+const DEFAULT_LISTBOX_CLEAR_ARIA_LABEL = 'Clear selection';
 
 /**
  * DEFAULT_LISTBOX_SHOW_SEARCH — задаёт режим поиска по умолчанию.
  * Используется, когда вызывающий код не передал проп `showSearchField`.
  */
-const DEFAULT_LISTBOX_SHOW_SEARCH = false;
+export const DEFAULT_LISTBOX_SHOW_SEARCH = false;
 
 /**
  * DEFAULT_LISTBOX_TINTED — задаёт режим мягкой заливки поля поиска по умолчанию.
  * Используется, когда вызывающий код не передал проп `tinted`.
  */
-const DEFAULT_LISTBOX_TINTED = true;
+export const DEFAULT_LISTBOX_TINTED = true;
 
 /**
  * ListboxOption — представляет опцию списка Listbox.
@@ -264,15 +289,20 @@ export type ListboxOption =
  *
  * @property inlineCheckbox — включает чекбоксы в строках опций
  * @property multiple — включает множественный выбор
+ * @property selectedCountLabel — функция подписи счётчика нескольких выбранных строк.
+ *   Без пропа — `count selected`. Вызывающий код заменяет функцию целиком.
+ *   Пустая строка из функции счётчик не рисует. Без `multiple` не собирается
  */
 export type ListboxMultipleProps =
   | {
       inlineCheckbox?: boolean;
       multiple: true;
+      selectedCountLabel?: (count: number) => string;
     }
   | {
       inlineCheckbox?: never;
       multiple?: false;
+      selectedCountLabel?: never;
     };
 
 /**
@@ -280,13 +310,15 @@ export type ListboxMultipleProps =
  * Рамка и тень допустимы только при `appearance: 'icon'`: вид `field` держит
  * постоянную рамку ряда-триггера. Сброс выбора и пропы шеврона допустимы только
  * у вида `field`: у вида `icon` шеврона и кнопки сброса нет. Запасной глиф
- * допустим только у вида `icon`.
+ * и `title` допустимы только у вида `icon`.
  *
  * @property appearance — вид триггера
  * @property icon — запасной глиф вида `icon`
  * @property iconFill — тон глифа шеврона у вида `field`
  * @property iconPosition — позиция шеврона у вида `field`
  * @property iconTone — тон секции шеврона у вида `field`
+ * @property title — текст нативного tooltip кнопки вида `icon`. Задаётся явно,
+ *   из `label` и `aria-label` не выводится. Пустая строка этот tooltip не показывает
  * @property showBorder — включает рамку триггера вида `icon`
  * @property showShadow — включает тень триггера вида `icon` при включённой рамке
  */
@@ -299,6 +331,7 @@ export type ListboxAppearanceProps =
       iconPosition?: never;
       iconTone?: never;
       showClearButton?: never;
+      title?: string;
     } & BorderProps)
   | ({
       appearance?: 'field';
@@ -308,6 +341,7 @@ export type ListboxAppearanceProps =
       iconTone?: TonePreset;
       showBorder?: never;
       showShadow?: never;
+      title?: never;
     } & ShowClearButtonProps);
 
 /**
@@ -425,16 +459,19 @@ function toSelectedValues(
  * Как работает:
  * 1. Собирает подписи выбранных опций
  * 2. Без выбранных возвращает `null` — триггер покажет плейсхолдер
- * 3. Для одной опции возвращает её подпись, для нескольких — счётчик
- *    вида `N selected`
+ * 3. Для одной опции возвращает её подпись
+ * 4. Для нескольких берёт текст `selectedCountLabel`. Пустая строка или пробелы
+ *    возвращают `null`, и триггер показывает плейсхолдер вместо счётчика
  *
  * @param options опции списка
  * @param selected выбранные ключи
- * @returns подпись одной опции, счётчик выбранных или `null`
+ * @param selectedCountLabel функция подписи счётчика. Вызывающий код заменяет её целиком
+ * @returns подпись одной опции, текст счётчика или `null`
  */
 function formatMultipleTriggerLabel(
   options: readonly ListboxOption[],
-  selected: readonly string[]
+  selected: readonly string[],
+  selectedCountLabel: (count: number) => string
 ): ReactNode {
   const labels = options
     .filter((option) => selected.includes(option.value))
@@ -448,7 +485,13 @@ function formatMultipleTriggerLabel(
     return labels[0];
   }
 
-  return `${labels.length} selected`;
+  const countLabel = selectedCountLabel(labels.length);
+
+  if (countLabel.trim() === '') {
+    return null;
+  }
+
+  return countLabel;
 }
 
 /**
@@ -641,6 +684,7 @@ export function Listbox({
   searchPlaceholder,
   searchShape,
   searchSize,
+  selectedCountLabel = DEFAULT_LISTBOX_SELECTED_COUNT_LABEL,
   shape,
   showBorder = DEFAULT_LISTBOX_SHOW_BORDER,
   showClearButton = DEFAULT_LISTBOX_SHOW_CLEAR_BUTTON,
@@ -653,6 +697,7 @@ export function Listbox({
   showShadow,
   size,
   tinted = DEFAULT_LISTBOX_TINTED,
+  title,
   value,
   ...rest
 }: ListboxProps) {
@@ -694,7 +739,7 @@ export function Listbox({
     : options;
   const selectedOption = options.find((option) => option.value === selected[0]);
   const triggerLabel = multiple
-    ? formatMultipleTriggerLabel(options, selected)
+    ? formatMultipleTriggerLabel(options, selected, selectedCountLabel)
     : (selectedOption?.label ?? null);
   const triggerIcon = !showCheckbox ? selectedOption?.icon : undefined;
   const iconAppearanceGlyph = isIconAppearance
@@ -717,11 +762,14 @@ export function Listbox({
   );
   const clearNode = isClearVisible && (
     <OpenControlClear
-      clearAriaLabel={clearAriaLabel}
+      clearAriaLabel={
+        clearAriaLabel !== undefined && clearAriaLabel.trim() !== ''
+          ? clearAriaLabel
+          : DEFAULT_LISTBOX_CLEAR_ARIA_LABEL
+      }
       disabled={disabled}
       iconFill={iconFill}
       iconTone={iconTone}
-      label={label}
       shape={iconShape}
       size={size}
       onClick={handleClear}
@@ -1122,6 +1170,7 @@ export function Listbox({
       ref={triggerRef}
       shape={iconShape}
       size={size}
+      title={title === '' ? undefined : title}
       {...iconBorderProps}
       onClick={handleTriggerToggle}
       onKeyDown={handleTriggerKeyDown}

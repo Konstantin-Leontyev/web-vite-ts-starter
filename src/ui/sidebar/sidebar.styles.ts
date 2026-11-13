@@ -4,15 +4,14 @@
  *
  * Основные задачи:
  * 1. Типизировать пропсы через `SidebarStyleProps`
- * 2. Хранить ширину панели в `SIDEBAR_PANEL_WIDTH`, порог раскладки в
- *    `SIDEBAR_PANEL_BREAKPOINT`, высоты узкого экрана в `SIDEBAR_PANEL_BLOCK_SIZE`
- *    и `SIDEBAR_PANEL_MAX_BLOCK_SIZE`
+ * 2. Хранить ширину панели в `SIDEBAR_PANEL_WIDTH` и потолок узкого экрана в
+ *    `SIDEBAR_PANEL_MAX_BLOCK_SIZE`
  * 3. Предоставить styled-узлы `StyledSidebar`, `StyledSidebarContent`, `StyledSidebarSlot`
  *    и `StyledSidebarTrack`
  * 4. Реэкспортировать `splitLayoutProps` для сборки в `index.tsx`
  *
  * Потребители:
- *  - `src/ui/sidebar/index.tsx` — собирает компонент Sidebar
+ *  - `src/ui/sidebar/index.tsx` — собирает компонент Sidebar и реэкспортирует публичное API
  */
 
 import styled from 'styled-components';
@@ -26,31 +25,19 @@ import {
   getSpacingValue,
   resolvePaddingEdge,
 } from '@ui/spacing';
-import { STACKING_SIDEBAR } from '@ui/stacking';
 import { VIEWPORT_EDGE_INSET } from '@ui/viewport';
 
 export { splitLayoutProps } from '@ui/layout';
 
 /**
  * SIDEBAR_PANEL_WIDTH — задаёт ширину выезжающей панели.
- * Используется в `StyledSidebarTrack` и при расчёте ширины `StyledSidebarSlot`.
+ * Используется в `StyledSidebarTrack`, при расчёте ширины `StyledSidebarSlot`
+ * и в `resolveShowcasePanelBreakpoint` из `src/pages/showcase/showcase.styles.ts`.
  */
-const SIDEBAR_PANEL_WIDTH = '20rem';
+export const SIDEBAR_PANEL_WIDTH = '20rem';
 
 /**
- * SIDEBAR_PANEL_BREAKPOINT — задаёт порог широкого экрана для раскладки Sidebar.
- * Используется в `getSidebarStyles` и `StyledSidebar`.
- */
-const SIDEBAR_PANEL_BREAKPOINT = '640px';
-
-/**
- * SIDEBAR_PANEL_BLOCK_SIZE — задаёт высоту выезжающей панели на узком экране.
- * Используется в `getSidebarStyles`.
- */
-const SIDEBAR_PANEL_BLOCK_SIZE = '50dvb';
-
-/**
- * SIDEBAR_PANEL_MAX_BLOCK_SIZE — задаёт потолок высоты содержимого панели на узком экране.
+ * SIDEBAR_PANEL_MAX_BLOCK_SIZE — задаёт потолок высоты панели на узком экране.
  * Используется в `getSidebarStyles`.
  */
 const SIDEBAR_PANEL_MAX_BLOCK_SIZE = 'min(480px, 60dvb)';
@@ -144,8 +131,24 @@ export const StyledSidebarTrack = styled.div`
 
 /**
  * SidebarStyleProps — представляет пропсы стилизации Sidebar и layout-пропсы.
+ *
+ * @property panelBreakpoint — порог ширины экрана. При этой ширине и меньше панель выезжает снизу.
+ *   Без пропа — `SIDEBAR_PANEL_BREAKPOINT`
  */
-export type SidebarStyleProps = LayoutProps;
+export type SidebarStyleProps = LayoutProps & {
+  panelBreakpoint?: string;
+};
+
+/**
+ * SIDEBAR_PROP_NAMES — объединяет имена layout-пропсов и пропсов стилизации Sidebar.
+ */
+const SIDEBAR_PROP_NAMES = new Set<string>([...LAYOUT_PROP_NAMES, 'panelBreakpoint']);
+
+/**
+ * SIDEBAR_PANEL_BREAKPOINT — задаёт запасной порог широкого экрана для раскладки Sidebar.
+ * Используется в `getSidebarStyles`, когда проп `panelBreakpoint` не передан.
+ */
+const SIDEBAR_PANEL_BREAKPOINT = '640px';
 
 /**
  * omitSidebarShellLayoutProps — убирает маршрутизируемые `padding*` через
@@ -176,24 +179,28 @@ function omitSidebarShellLayoutProps(props: LayoutProps): LayoutProps {
 
 /**
  * getSidebarStyles — возвращает CSS-правила для корня `StyledSidebar`: отступы зон
- * каркаса, зазор при открытой панели, ширину слота, слой `STACKING_SIDEBAR`
- * на узком экране и поведение выезда.
+ * каркаса, зазор при открытой панели, ширину слота на широком экране
+ * и нижнюю полосу панели на узком.
  *
  * Как работает:
- * 1. Для каждого края оболочки берёт отступ через `resolvePaddingEdge`
+ * 1. Берёт порог ширины экрана из пропа `panelBreakpoint`
+ * 2. Для каждого края оболочки берёт отступ через `resolvePaddingEdge`
  *    с запасным значением `VIEWPORT_EDGE_INSET` и переводит метку шкалы в CSS-длину
- * 2. Пишет отступы в `StyledSidebarContent` и `StyledSidebarSlot` по состоянию
+ * 3. Пишет отступы в `StyledSidebarContent` и `StyledSidebarSlot` по состоянию
  *    панели и ширине вьюпорта
- * 3. На широком экране при открытой панели задаёт зазор между зонами и ширину
- *    слота как ширину панели плюс отступ inline-end
- * 4. На узком экране выносит слот из потока к нижнему краю, поднимает слой
- *    `STACKING_SIDEBAR`, выезжает трек снизу на высоту панели и ограничивает
- *    потолок содержимого
+ * 4. Когда ширина больше `panelBreakpoint` и панель открыта, задаёт зазор между зонами
+ *    и ширину слота как ширину панели плюс отступ inline-end
+ * 5. При ширине не больше `panelBreakpoint` и открытой панели ставит слот
+ *    второй строкой сетки под областью контента. Между ними тот же зазор,
+ *    что по краям страницы. Прокрутка остаётся над панелью.
+ *    Нижний отступ оболочки — под панелью, панель его не закрывает.
+ *    Трек выезжает снизу и не выше `SIDEBAR_PANEL_MAX_BLOCK_SIZE`
  *
  * @param props пропсы стилизации Sidebar
  * @returns CSS-правила, каждое с новой строки
  */
 function getSidebarStyles(props: SidebarStyleProps): string {
+  const { panelBreakpoint = SIDEBAR_PANEL_BREAKPOINT } = props;
   const paddingBlockStart = getSpacingValue(
     resolvePaddingEdge(props, 'blockStart', VIEWPORT_EDGE_INSET)
   );
@@ -213,7 +220,8 @@ function getSidebarStyles(props: SidebarStyleProps): string {
       padding-block-end: ${paddingBlockEnd};
       padding-inline-start: ${paddingInlineStart};
     }
-    @media (width > ${SIDEBAR_PANEL_BREAKPOINT}) {
+    @media (width > ${panelBreakpoint}) {
+      grid-template-columns: 1fr auto;
       &:not(:has(${StyledSidebarSlot}[data-open='true'])) ${StyledSidebarContent} {
         padding-inline-end: ${paddingInlineEnd};
       }
@@ -227,23 +235,27 @@ function getSidebarStyles(props: SidebarStyleProps): string {
         padding-inline-end: ${paddingInlineEnd};
       }
     }
-    @media (width <= ${SIDEBAR_PANEL_BREAKPOINT}) {
+    @media (width <= ${panelBreakpoint}) {
+      &:has(${StyledSidebarSlot}[data-open='true']) {
+        grid-template-rows: minmax(0, 1fr) auto;
+        gap: ${getSpacingValue(props.gap ?? VIEWPORT_EDGE_INSET)};
+      }
+      &:has(${StyledSidebarSlot}[data-open='true']) ${StyledSidebarContent} {
+        padding-block-end: 0;
+      }
       ${StyledSidebarContent} {
         padding-inline-end: ${paddingInlineEnd};
       }
-      ${StyledSidebarSlot} {
-        position: absolute;
-        inset-block-end: 0;
-        inset-inline: 0;
-        z-index: ${STACKING_SIDEBAR};
+      ${StyledSidebarSlot}[data-open='true'] {
         inline-size: auto;
-        padding-block-start: ${paddingBlockStart};
         padding-block-end: ${paddingBlockEnd};
         padding-inline: ${paddingInlineStart} ${paddingInlineEnd};
       }
       ${StyledSidebarTrack} {
         inline-size: 100%;
-        block-size: ${SIDEBAR_PANEL_BLOCK_SIZE};
+        block-size: auto;
+        max-block-size: ${SIDEBAR_PANEL_MAX_BLOCK_SIZE};
+        align-items: flex-end;
         transform: translateY(100%);
       }
       ${StyledSidebarTrack}[data-open='true'] {
@@ -266,15 +278,14 @@ function getSidebarStyles(props: SidebarStyleProps): string {
  *  - `block-size: 100%` — заполняет родителя. Заданную высоту обеспечивает обёртка
  *    вызывающего кода
  *  - `overflow: hidden` — обрезает выезд панели по границе каркаса
- *  - `grid-template-columns: 1fr auto` при ширине больше `SIDEBAR_PANEL_BREAKPOINT` —
- *    панель в потоке справа, контент ужимается
  *
  * Генерация стилей:
- *  - `getSidebarStyles` — маршрутизация `padding*` и `gap` по зонам и состояниям
+ *  - `getSidebarStyles` — маршрутизация `padding*` и `gap` по зонам и состояниям,
+ *    `grid-template-columns: 1fr auto` при ширине больше `panelBreakpoint`
  *  - `getLayoutStyles` — внешние отступы корня
  */
 export const StyledSidebar = styled.div.withConfig({
-  shouldForwardProp: (prop) => !LAYOUT_PROP_NAMES.has(prop),
+  shouldForwardProp: (prop) => !SIDEBAR_PROP_NAMES.has(prop),
 })<SidebarStyleProps>`
   position: relative;
   display: grid;
@@ -287,8 +298,4 @@ export const StyledSidebar = styled.div.withConfig({
 
   ${(props) => getSidebarStyles(props)}
   ${(props) => getLayoutStyles(omitSidebarShellLayoutProps(props))}
-
-  ${`@media (width > ${SIDEBAR_PANEL_BREAKPOINT}) {
-    grid-template-columns: 1fr auto;
-  }`}
 `;

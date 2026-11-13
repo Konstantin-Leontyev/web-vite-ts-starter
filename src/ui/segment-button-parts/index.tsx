@@ -78,9 +78,11 @@ export type SegmentButtonPartsActionIconProps =
  * @property ariaControls — id панели, которой управляет сегмент
  * @property ariaExpanded — включает раскрытое состояние связанной панели
  * @property ariaHaspopup — тип всплывающей панели сегмента
+ * @property ariaLabel — доступное имя сегмента без видимого текста
  * @property dataAction — значение `data-action` на кнопке сегмента
  * @property disabled — включает недоступное состояние
- * @property label — текст сегмента
+ * @property label — текст сегмента. Пустая строка прячет текст, доступное имя
+ *   берётся из `ariaLabel`
  * @property onClick — обработчик клика по сегменту
  * @property onDoubleClick — обработчик двойного клика по сегменту
  * @property onFocus — обработчик фокуса на сегменте
@@ -97,6 +99,7 @@ type SegmentButtonPartsAction = {
   ariaControls?: string;
   ariaExpanded?: boolean;
   ariaHaspopup?: 'dialog' | 'listbox';
+  ariaLabel?: string;
   dataAction?: string;
   disabled?: boolean;
   label: string;
@@ -178,6 +181,7 @@ function SegmentButtonPartsPart({
     ariaControls,
     ariaExpanded,
     ariaHaspopup,
+    ariaLabel,
     dataAction,
     disabled,
     icon,
@@ -215,6 +219,7 @@ function SegmentButtonPartsPart({
         ? SEGMENT_BUTTON_PARTS_ACTIVE_TEXT_TONE
         : undefined);
 
+  const visibleLabel = label.trim() === '' ? undefined : label;
   const hasIcon = Boolean(icon);
   const iconNode = hasIcon && (
     <Icon iconFill={iconFill} iconTone={tone} interactive showHover={false} size={size}>
@@ -229,6 +234,7 @@ function SegmentButtonPartsPart({
       aria-current={active ? 'true' : undefined}
       aria-expanded={ariaExpanded}
       aria-haspopup={ariaHaspopup}
+      aria-label={visibleLabel === undefined ? ariaLabel : undefined}
       data-action={dataAction}
       disabled={disabled}
       hasIcon={hasIcon}
@@ -246,15 +252,17 @@ function SegmentButtonPartsPart({
       {...(pointerProps ?? {})}
     >
       {iconPosition === 'start' && iconNode}
-      <Text
-        align={hasIcon ? undefined : 'center'}
-        ellipsis
-        italic={textItalic}
-        size={textSize}
-        tone={resolvedTextTone}
-      >
-        {label}
-      </Text>
+      {visibleLabel !== undefined && (
+        <Text
+          align={hasIcon ? undefined : 'center'}
+          ellipsis
+          italic={textItalic}
+          size={textSize}
+          tone={resolvedTextTone}
+        >
+          {visibleLabel}
+        </Text>
+      )}
       {iconPosition === 'end' && iconNode}
     </StyledSegmentButtonPartsPart>
   );

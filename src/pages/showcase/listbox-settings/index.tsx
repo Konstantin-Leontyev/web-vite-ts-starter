@@ -2,8 +2,8 @@
  * Файл: `src/pages/showcase/listbox-settings/index.tsx`
  * Определяет панель настроек компонента Listbox в витрине дизайн-системы.
  * Содержит контролы для изменения размера, формы, вида триггера, рамки вида
- * `icon`, запасного глифа вида `icon`, иконки вида `field`, сброса выбора
- * вида `field`, поля поиска и его вида,
+ * `icon`, запасного глифа вида `icon`, текста нативного tooltip вида `icon`,
+ * иконки вида `field`, сброса выбора вида `field`, поля поиска и его вида,
  * демо-иконок опций, режима множественного выбора, чекбоксов в строках, подписи,
  * плейсхолдера и состояния `disabled` в реальном времени.
  *
@@ -87,6 +87,7 @@ const LISTBOX_APPEARANCE_OPTIONS: ListboxOption[] = [
  * @property showShadow — включает тень триггера вида `icon` при включённой рамке
  * @property size — размер компонента
  * @property tinted — включает мягкую заливку поля поиска
+ * @property title — текст нативного tooltip кнопки вида `icon`
  * @property value — буфер выбранного значения в превью. В панель не выносится
  * @property withIcon — витринный ключ показа иконок в демо-опциях. Выключенный — опции без иконок
  */
@@ -124,6 +125,7 @@ export type ListboxWidgetState = {
   showShadow: boolean;
   size: SizePreset;
   tinted: boolean;
+  title: string;
   value: string | string[];
   withIcon: boolean;
 };
@@ -199,6 +201,18 @@ export function ListboxSettings({ onChange, state }: ListboxSettingsProps) {
           showSearchField
           value={state.iconKey}
           onChange={(value) => onChange('iconKey', value as IconKey)}
+        />
+      )}
+
+      {state.appearance === 'icon' && (
+        <TextGroup
+          contents={[
+            {
+              value: state.title,
+              onChange: (value) => onChange('title', value),
+            },
+          ]}
+          labelPrefix="Tooltip"
         />
       )}
 

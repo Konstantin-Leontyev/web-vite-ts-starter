@@ -31,6 +31,12 @@
  *  - обработчик отмены редактирования через проп `onEditCancel`
  *  - обработчик запроса на редактирование строки через проп `onEditRow`
  *  - рендер ячеек панели редактирования через проп `renderEditCell`
+ *  - видимый текст кнопки правки через проп `editLabel`. Без пропа — `Edit`.
+ *    Пустая строка прячет текст, доступное имя остаётся этой фразой
+ *  - доступное имя кнопки и диалога добавления через проп `addRowAriaLabel`.
+ *    Без пропа — `Add row`. Пустая строка остаётся этой фразой
+ *  - доступное имя диалога редактирования через проп `editRowAriaLabel`.
+ *    Без пропа — `Edit row`. Пустая строка остаётся этой фразой
  *  - выбор строк через проп `checkable`. Без него каждое поле выбора погашено
  *    и спред этих полей не собирается. При `checkable: true` поля выбора есть
  *  - полный набор выбираемых ключей через проп `allSelectableKeys`
@@ -43,6 +49,14 @@
  *  - колонку с чекбоксом строки через проп `rowCheckboxColumnKey`
  *  - выбранные ключи через проп `selectedKeys`
  *  - колонку действий выбранной строки через проп `selectedRowActionsColumnKey`
+ *  - доступное имя чекбокса выбора всех строк через проп `selectAllAriaLabel`.
+ *    Без пропа — `Select all rows`. Пустая строка остаётся этой фразой
+ *  - доступное имя чекбокса сброса выбора через проп `clearSelectionAriaLabel`.
+ *    Без пропа — `Clear selection`. Пустая строка остаётся этой фразой
+ *  - доступное имя чекбокса строки без видимого текста через проп `selectRowAriaLabel`.
+ *    Без пропа — `Select row`. Пустая строка остаётся этой фразой
+ *  - доступное имя чекбокса группы без видимого заголовка через проп `selectGroupAriaLabel`.
+ *    Без пропа — `Select group`. Пустая строка остаётся этой фразой
  *
  * Основные задачи:
  * 1. Экспортировать компонент Table
@@ -58,9 +72,12 @@
  * 7. Ставить фокус при открытии панелей add и edit на первое поле ввода
  *    внутри узла панели. Панель открывают ради правки строки, кнопка
  *    шапки и чекбокс в обход не входят
- * 8. Называть галочку по видимому тексту колонки галочки. У строки имя берётся
- *    из текста ячейки, у группы — из текста заголовка группы. Пустой текст даёт
- *    `Select row` для строки и `Select group` для группы, без внутреннего ключа
+ * 8. Называть галочку строки и группы текстом ячейки колонки галочки, без слова
+ *    `Select` и не по внутреннему ключу. Связь — `aria-labelledby` на узел, чей
+ *    текст совпал со значением колонки, id на этом узле. Экранный чтец говорит
+ *    этот текст, затем роль флажка. Такого узла нет — `aria-label`, целая фраза
+ *    `Select row` или `Select group`, проп заменяет её целиком. В шапке и подвале —
+ *    `Select all rows` и `Clear selection`
  * 9. Показывать в отмеченной строке текст, затем кнопку Edit тона `primary`
  *    и размера `small`, затем действия выбранной строки. У заголовка группы
  *    Edit нет, действия видны, когда группа отмечена. Кнопка добавления и Edit
@@ -76,12 +93,15 @@
  *  - `src/pages/showcase` — демонстрирует состояния в витрине
  */
 import {
+  cloneElement,
+  isValidElement,
   useId,
   useLayoutEffect,
   useRef,
   useState,
   type ComponentPropsWithRef,
   type KeyboardEvent,
+  type ReactElement,
   type ReactNode,
   type RefObject,
 } from 'react';
@@ -202,7 +222,7 @@ export const DEFAULT_ADD_HINT =
  * Используется, когда вызывающий код не передал проп `editHint`.
  */
 export const DEFAULT_EDIT_HINT =
-  'Press Esc to close without saving, or Enter to save changes.';
+  'Press Esc to close without saving, or Enter to save changes';
 
 /**
  * DEFAULT_TABLE_ADD_ROW_ACTIVE — задаёт режим панели добавления строки по умолчанию.
@@ -243,19 +263,22 @@ const DEFAULT_TABLE_HEADER_RESERVE_CHECKBOX = false;
 const DEFAULT_TABLE_NUMBERED = true;
 
 /**
- * TABLE_ADD_ROW_ARIA_LABEL — задаёт `aria-label` кнопки и диалога добавления строки.
+ * DEFAULT_TABLE_ADD_ROW_ARIA_LABEL — задаёт доступное имя кнопки и диалога добавления строки по умолчанию.
+ * Используется, когда вызывающий код не передал проп `addRowAriaLabel`.
  */
-const TABLE_ADD_ROW_ARIA_LABEL = 'Add row';
+const DEFAULT_TABLE_ADD_ROW_ARIA_LABEL = 'Add row';
 
 /**
- * TABLE_EDIT_ACTION_LABEL — задаёт подпись встроенной кнопки Edit в строке.
+ * DEFAULT_TABLE_EDIT_LABEL — задаёт видимый текст кнопки правки строки по умолчанию.
+ * Используется, когда вызывающий код не передал проп `editLabel`.
  */
-const TABLE_EDIT_ACTION_LABEL = 'Edit';
+export const DEFAULT_TABLE_EDIT_LABEL = 'Edit';
 
 /**
- * TABLE_EDIT_ROW_ARIA_LABEL — задаёт `aria-label` диалога редактирования строки.
+ * DEFAULT_TABLE_EDIT_ROW_ARIA_LABEL — задаёт доступное имя диалога редактирования строки по умолчанию.
+ * Используется, когда вызывающий код не передал проп `editRowAriaLabel`.
  */
-const TABLE_EDIT_ROW_ARIA_LABEL = 'Edit row';
+const DEFAULT_TABLE_EDIT_ROW_ARIA_LABEL = 'Edit row';
 
 /**
  * TABLE_ROW_ACTION_SIZE_PRESET — задаёт `size` кнопки Edit.
@@ -264,26 +287,28 @@ const TABLE_EDIT_ROW_ARIA_LABEL = 'Edit row';
 const TABLE_ROW_ACTION_SIZE_PRESET: SizePreset = 'small';
 
 /**
- * TABLE_SELECT_ALL_ARIA_LABEL — задаёт `aria-label` чекбокса выбора всех строк.
+ * DEFAULT_TABLE_SELECT_ALL_ARIA_LABEL — задаёт доступное имя чекбокса выбора всех строк по умолчанию.
+ * Используется, когда вызывающий код не передал проп `selectAllAriaLabel`.
  */
-const TABLE_SELECT_ALL_ARIA_LABEL = 'Select all rows';
+const DEFAULT_TABLE_SELECT_ALL_ARIA_LABEL = 'Select all rows';
 
 /**
- * TABLE_CLEAR_SELECTION_ARIA_LABEL — задаёт `aria-label` чекбокса сброса выбора всех строк.
+ * DEFAULT_TABLE_CLEAR_SELECTION_ARIA_LABEL — задаёт доступное имя чекбокса сброса выбора по умолчанию.
+ * Используется, когда вызывающий код не передал проп `clearSelectionAriaLabel`.
  */
-const TABLE_CLEAR_SELECTION_ARIA_LABEL = 'Clear selection';
+const DEFAULT_TABLE_CLEAR_SELECTION_ARIA_LABEL = 'Clear selection';
 
 /**
- * TABLE_SELECT_GROUP_ARIA_LABEL — задаёт `aria-label` чекбокса группы,
- * когда у группы нет видимого заголовка.
+ * DEFAULT_TABLE_SELECT_GROUP_ARIA_LABEL — задаёт доступное имя чекбокса группы без видимого заголовка по умолчанию.
+ * Используется, когда вызывающий код не передал проп `selectGroupAriaLabel`.
  */
-const TABLE_SELECT_GROUP_ARIA_LABEL = 'Select group';
+const DEFAULT_TABLE_SELECT_GROUP_ARIA_LABEL = 'Select group';
 
 /**
- * TABLE_SELECT_ROW_ARIA_LABEL — задаёт `aria-label` чекбокса строки,
- * когда у строки нет видимого текста.
+ * DEFAULT_TABLE_SELECT_ROW_ARIA_LABEL — задаёт доступное имя чекбокса строки без видимого текста по умолчанию.
+ * Используется, когда вызывающий код не передал проп `selectRowAriaLabel`.
  */
-const TABLE_SELECT_ROW_ARIA_LABEL = 'Select row';
+const DEFAULT_TABLE_SELECT_ROW_ARIA_LABEL = 'Select row';
 
 /**
  * TableAddRowActiveProps — представляет пропсы активной панели добавления строки Table.
@@ -332,10 +357,16 @@ export type TableEditRowActiveProps =
  * @property addError — текст ошибки панели добавления строки
  * @property addHint — текст подсказки в полоске ошибки панели добавления, пока нет
  *   `addError`
+ * @property addRowAriaLabel — доступное имя кнопки и диалога добавления строки.
+ *   Без пропа — `Add row`. Пустая строка остаётся этой фразой
  * @property editable — включает добавление и редактирование строк
  * @property editError — текст ошибки панели редактирования строки
  * @property editHint — текст подсказки в полоске ошибки панели редактирования, пока нет
  *   `editError`
+ * @property editLabel — видимый текст кнопки правки строки. Без пропа — `Edit`.
+ *   Пустая строка прячет текст, доступное имя остаётся этой фразой
+ * @property editRowAriaLabel — доступное имя диалога редактирования строки.
+ *   Без пропа — `Edit row`. Пустая строка остаётся этой фразой
  * @property onAddCancel — обработчик отмены добавления строки
  * @property onAddRow — обработчик запроса на добавление строки из шапки или футера.
  *   Без колбэка кнопка «+» видна, но недоступна
@@ -348,11 +379,14 @@ export type TableEditableProps<Row> =
       addError?: never;
       addHint?: never;
       addRowActive?: never;
+      addRowAriaLabel?: never;
       addRowSource?: never;
       editable?: false;
       editError?: never;
       editHint?: never;
+      editLabel?: never;
       editRowActive?: never;
+      editRowAriaLabel?: never;
       editRowKey?: never;
       onAddCancel?: never;
       onAddRow?: never;
@@ -364,9 +398,12 @@ export type TableEditableProps<Row> =
   | ({
       addError?: string;
       addHint?: string;
+      addRowAriaLabel?: string;
       editable: true;
       editError?: string;
       editHint?: string;
+      editLabel?: string;
+      editRowAriaLabel?: string;
       onAddCancel?: () => void;
       onAddRow?: (source: TableAddRowSource) => void;
       onEditCancel?: () => void;
@@ -388,6 +425,8 @@ export type TableEditableProps<Row> =
  *   а не только над видимыми строками: свёрнутые строки тоже выделяются. Иначе выбор
  *   охватывает только видимые строки
  * @property checkable — включает режим выбора строк
+ * @property clearSelectionAriaLabel — доступное имя чекбокса сброса выбора. Без пропа —
+ *   `Clear selection`. Пустая строка остаётся этой фразой
  * @property getRowGroupMemberKeys — ключи строк-членов группы для строки-заголовка.
  *   Для обычной строки возвращает `undefined`. Непустой набор включает групповой
  *   чекбокс у заголовка: отмечает и снимает все эти строки, включая свёрнутые.
@@ -399,12 +438,19 @@ export type TableEditableProps<Row> =
  * @property renderSelectedRowActions — действия в ячейке выбранной строки
  * @property rowCheckboxColumnKey — ключ колонки, в которой рендерится чекбокс строки.
  *   В шапке этой колонки стоят select-all, «+» и bulk
+ * @property selectAllAriaLabel — доступное имя чекбокса выбора всех строк. Без пропа —
+ *   `Select all rows`. Пустая строка остаётся этой фразой
  * @property selectedKeys — выбранные ключи строк
  * @property selectedRowActionsColumnKey — ключ колонки для действий выбранной строки
+ * @property selectGroupAriaLabel — доступное имя чекбокса группы без видимого заголовка.
+ *   Без пропа — `Select group`. Пустая строка остаётся этой фразой
+ * @property selectRowAriaLabel — доступное имя чекбокса строки без видимого текста.
+ *   Без пропа — `Select row`. Пустая строка остаётся этой фразой
  */
 type TableSelectionProps<Row> = {
   allSelectableKeys?: string[];
   checkable: true;
+  clearSelectionAriaLabel?: string;
   getRowGroupMemberKeys?: (row: Row) => string[] | undefined;
   getRowKey: (row: Row) => string;
   isRowSelectable?: (row: Row) => boolean;
@@ -412,8 +458,11 @@ type TableSelectionProps<Row> = {
   renderBulkSelectionActions?: () => ReactNode;
   renderSelectedRowActions?: (row: Row) => ReactNode;
   rowCheckboxColumnKey: Extract<keyof Row, string>;
+  selectAllAriaLabel?: string;
   selectedKeys: ReadonlySet<string>;
   selectedRowActionsColumnKey?: Extract<keyof Row, string>;
+  selectGroupAriaLabel?: string;
+  selectRowAriaLabel?: string;
 };
 
 /**
@@ -423,6 +472,7 @@ type TableSelectionProps<Row> = {
  *
  * @property allSelectableKeys — запрещён без `checkable`
  * @property checkable — режим выбора выключен
+ * @property clearSelectionAriaLabel — запрещён без `checkable`
  * @property getRowGroupMemberKeys — запрещён без `checkable`
  * @property getRowKey — запрещён без `checkable`
  * @property isRowSelectable — запрещён без `checkable`
@@ -430,12 +480,16 @@ type TableSelectionProps<Row> = {
  * @property renderBulkSelectionActions — запрещён без `checkable`
  * @property renderSelectedRowActions — запрещён без `checkable`
  * @property rowCheckboxColumnKey — запрещён без `checkable`
+ * @property selectAllAriaLabel — запрещён без `checkable`
  * @property selectedKeys — запрещён без `checkable`
  * @property selectedRowActionsColumnKey — запрещён без `checkable`
+ * @property selectGroupAriaLabel — запрещён без `checkable`
+ * @property selectRowAriaLabel — запрещён без `checkable`
  */
 type TableSelectionOffProps = {
   allSelectableKeys?: never;
   checkable?: false;
+  clearSelectionAriaLabel?: never;
   getRowGroupMemberKeys?: never;
   getRowKey?: never;
   isRowSelectable?: never;
@@ -443,8 +497,11 @@ type TableSelectionOffProps = {
   renderBulkSelectionActions?: never;
   renderSelectedRowActions?: never;
   rowCheckboxColumnKey?: never;
+  selectAllAriaLabel?: never;
   selectedKeys?: never;
   selectedRowActionsColumnKey?: never;
+  selectGroupAriaLabel?: never;
+  selectRowAriaLabel?: never;
 };
 
 /**
@@ -493,6 +550,10 @@ function handleTablePanelOpenFocus(panel: HTMLElement): void {
 /**
  * resolveRowVisibleText — возвращает видимый текст колонки галочки.
  * Строка, число и булево читаются как текст. Иное значение даёт пустую строку.
+ *
+ * @param row строка данных
+ * @param columnKey ключ колонки галочки
+ * @returns видимый текст колонки или пустая строка
  */
 function resolveRowVisibleText<Row>(
   row: Row,
@@ -516,15 +577,259 @@ function resolveRowVisibleText<Row>(
 }
 
 /**
- * resolveSelectionAriaLabel — возвращает имя галочки по видимому тексту.
- * Без текста остаётся короткая запасная подпись, без внутреннего ключа строки.
+ * resolvePhrase — возвращает целую фразу имени.
+ * Пустая строка или пробелы остаются умолчанием.
+ *
+ * @param value переданный текст
+ * @param fallback умолчание фразы
+ * @returns фраза имени
  */
-function resolveSelectionAriaLabel(visibleText: string, isGroup: boolean): string {
-  if (visibleText !== '') {
-    return `Select ${visibleText}`;
+function resolvePhrase(value: string | undefined, fallback: string): string {
+  if (value !== undefined && value.trim() !== '') {
+    return value;
   }
 
-  return isGroup ? TABLE_SELECT_GROUP_ARIA_LABEL : TABLE_SELECT_ROW_ARIA_LABEL;
+  return fallback;
+}
+
+/**
+ * SelectionLabelElementProps — представляет пропсы элемента при поиске текста ячейки.
+ *
+ * @property children — содержимое элемента
+ * @property id — идентификатор элемента, если он уже задан
+ */
+type SelectionLabelElementProps = {
+  children?: ReactNode;
+  id?: string;
+};
+
+/**
+ * SelectionLabelAttachment — представляет результат поиска текста в ячейке.
+ *
+ * @property attached — признак, что узел с совпавшим текстом найден
+ * @property labelId — идентификатор найденного узла
+ * @property node — содержимое ячейки. При находке на узле стоит идентификатор
+ */
+type SelectionLabelAttachment = {
+  attached: boolean;
+  labelId: string | undefined;
+  node: ReactNode;
+};
+
+/**
+ * TableCheckboxNameProps — представляет доступное имя чекбокса выбора.
+ * При видимом тексте — ссылка на узел. Без текста — фраза целиком.
+ *
+ * @property ariaLabel — фраза имени без видимого текста
+ * @property ariaLabelledBy — идентификатор узла видимого текста
+ */
+type TableCheckboxNameProps =
+  | { ariaLabel: string; ariaLabelledBy?: never }
+  | { ariaLabel?: never; ariaLabelledBy: string };
+
+/**
+ * resolveSelectionLabelText — возвращает видимый текст текстового узла.
+ *
+ * @param node содержимое узла
+ * @returns обрезанный текст или `undefined`, если узел не текст или текст пуст
+ */
+function resolveSelectionLabelText(node: ReactNode): string | undefined {
+  if (typeof node !== 'string' && typeof node !== 'number') {
+    return undefined;
+  }
+
+  const text = String(node).trim();
+
+  if (text === '') {
+    return undefined;
+  }
+
+  return text;
+}
+
+/**
+ * resolveElementLabelText — возвращает видимый текст содержимого элемента.
+ * Смешанное содержимое текстом не считается.
+ *
+ * @param children содержимое элемента
+ * @returns текст содержимого или `undefined`, если оно не сводится к тексту
+ */
+function resolveElementLabelText(children: ReactNode): string | undefined {
+  const directText = resolveSelectionLabelText(children);
+
+  if (directText !== undefined) {
+    return directText;
+  }
+
+  if (!Array.isArray(children)) {
+    return undefined;
+  }
+
+  const parts: string[] = [];
+
+  for (const child of children) {
+    if (child == null || typeof child === 'boolean') {
+      continue;
+    }
+
+    if (typeof child !== 'string' && typeof child !== 'number') {
+      return undefined;
+    }
+
+    parts.push(String(child));
+  }
+
+  const text = parts.join('').trim();
+
+  if (text === '') {
+    return undefined;
+  }
+
+  return text;
+}
+
+/**
+ * resolveSelectionLabelList — возвращает соседние узлы, в которых на первый
+ * узел, чей текст совпал со значением колонки, поставлен id.
+ * Не нашёл — id не ставит.
+ *
+ * @param nodes соседние узлы
+ * @param id идентификатор для найденного узла
+ * @param visibleText значение колонки
+ * @returns список узлов и признак, что текст найден
+ */
+function resolveSelectionLabelList(
+  nodes: readonly ReactNode[],
+  id: string,
+  visibleText: string
+): SelectionLabelAttachment {
+  let labelId: string | undefined;
+  const next = nodes.map((child) => {
+    if (labelId !== undefined) {
+      return child;
+    }
+
+    const result = resolveSelectionLabel(child, id, visibleText);
+
+    if (!result.attached || result.labelId === undefined) {
+      return child;
+    }
+
+    labelId = result.labelId;
+    return result.node;
+  });
+
+  if (labelId === undefined) {
+    return { attached: false, labelId: undefined, node: nodes };
+  }
+
+  return { attached: true, labelId, node: next };
+}
+
+/**
+ * resolveSelectionLabelElement — возвращает элемент, в котором на узел,
+ * чей текст совпал со значением колонки, поставлен id.
+ * Собственный текст элемента совпал — ставит id на элемент и оставляет уже
+ * заданный id. Не нашёл — id не ставит.
+ *
+ * @param element элемент ячейки
+ * @param id идентификатор для найденного узла
+ * @param visibleText значение колонки
+ * @returns элемент и признак, что текст найден
+ */
+function resolveSelectionLabelElement(
+  element: ReactElement<SelectionLabelElementProps>,
+  id: string,
+  visibleText: string
+): SelectionLabelAttachment {
+  const { children } = element.props;
+
+  if (resolveElementLabelText(children) === visibleText) {
+    const existingId = element.props.id;
+
+    if (existingId !== undefined && existingId !== '') {
+      return { attached: true, labelId: existingId, node: element };
+    }
+
+    return {
+      attached: true,
+      labelId: id,
+      node: cloneElement(element, { id }),
+    };
+  }
+
+  if (Array.isArray(children)) {
+    const list = resolveSelectionLabelList(children, id, visibleText);
+
+    if (!list.attached || !Array.isArray(list.node)) {
+      return { attached: false, labelId: undefined, node: element };
+    }
+
+    return {
+      attached: true,
+      labelId: list.labelId,
+      node: cloneElement(element, undefined, ...list.node),
+    };
+  }
+
+  if (children == null || typeof children === 'boolean') {
+    return { attached: false, labelId: undefined, node: element };
+  }
+
+  const child = resolveSelectionLabel(children, id, visibleText);
+
+  if (!child.attached) {
+    return { attached: false, labelId: undefined, node: element };
+  }
+
+  return {
+    attached: true,
+    labelId: child.labelId,
+    node: cloneElement(element, undefined, child.node),
+  };
+}
+
+/**
+ * resolveSelectionLabel — возвращает дерево ячейки, в котором на узел,
+ * чей текст совпал со значением колонки, поставлен id.
+ * Оборачивает текстовый узел в `<span>` с этим id. Не нашёл — id не ставит,
+ * имя чекбокса остаётся фразой без текста.
+ *
+ * @param node дерево ячейки
+ * @param id идентификатор для найденного узла
+ * @param visibleText значение колонки
+ * @returns содержимое ячейки и признак, что текст найден
+ */
+function resolveSelectionLabel(
+  node: ReactNode,
+  id: string,
+  visibleText: string
+): SelectionLabelAttachment {
+  if (node == null || typeof node === 'boolean') {
+    return { attached: false, labelId: undefined, node };
+  }
+
+  if (typeof node === 'string' || typeof node === 'number') {
+    if (resolveSelectionLabelText(node) !== visibleText) {
+      return { attached: false, labelId: undefined, node };
+    }
+
+    return {
+      attached: true,
+      labelId: id,
+      node: <span id={id}>{node}</span>,
+    };
+  }
+
+  if (Array.isArray(node)) {
+    return resolveSelectionLabelList(node, id, visibleText);
+  }
+
+  if (!isValidElement<SelectionLabelElementProps>(node)) {
+    return { attached: false, labelId: undefined, node };
+  }
+
+  return resolveSelectionLabelElement(node, id, visibleText);
 }
 
 /**
@@ -532,13 +837,24 @@ function resolveSelectionAriaLabel(visibleText: string, isGroup: boolean): strin
  */
 function TableCheckbox({
   ariaLabel,
+  ariaLabelledBy,
   checked,
   onToggle,
-}: {
-  ariaLabel: string;
+}: TableCheckboxNameProps & {
   checked: boolean;
   onToggle: () => void;
 }): ReactNode {
+  if (ariaLabelledBy !== undefined) {
+    return (
+      <Checkbox
+        aria-labelledby={ariaLabelledBy}
+        checked={checked}
+        size="small"
+        onChange={onToggle}
+      />
+    );
+  }
+
   return (
     <Checkbox
       aria-label={ariaLabel}
@@ -577,6 +893,7 @@ function TableHeaderLeadSpacers({
  * @property anchorRef — ref якорной строки панели редактирования
  * @property checkable — признак режима выбора строк
  * @property columns — описание колонок
+ * @property editLabel — видимый текст кнопки правки строки
  * @property editPanelId — id диалога редактирования для `aria-controls` кнопки Edit
  * @property editRowActive — признак открытой панели редактирования
  * @property groupMemberKeys — ключи членов группы для строки-заголовка
@@ -591,6 +908,8 @@ function TableHeaderLeadSpacers({
  * @property rowIndex — индекс строки в видимом списке
  * @property rowKey — стабильный ключ строки
  * @property rowSelectable — признак, можно ли выбрать строку
+ * @property selectGroupAriaLabel — доступное имя чекбокса группы без видимого заголовка
+ * @property selectRowAriaLabel — доступное имя чекбокса строки без видимого текста
  * @property size — размер таблицы
  * @property textSize — размер текста ячейки
  * @property toggleGroupKeys — обработчик выбора или снятия группы ключей
@@ -601,6 +920,7 @@ type TableBodyRowProps<Row> = {
   anchorRef: RefObject<HTMLTableRowElement | null>;
   checkable: boolean;
   columns: TableColumn<Row>[];
+  editLabel: string | undefined;
   editPanelId: string;
   editRowActive: boolean;
   groupMemberKeys: string[] | undefined;
@@ -615,6 +935,8 @@ type TableBodyRowProps<Row> = {
   rowIndex: number;
   rowKey: string;
   rowSelectable: boolean;
+  selectGroupAriaLabel: string;
+  selectRowAriaLabel: string;
   size: TableStyleProps['size'];
   textSize: TextSizePreset;
   toggleGroupKeys: (memberKeys: string[]) => void;
@@ -629,6 +951,7 @@ function TableBodyRow<Row>({
   anchorRef,
   checkable,
   columns,
+  editLabel,
   editPanelId,
   editRowActive,
   groupMemberKeys,
@@ -643,28 +966,19 @@ function TableBodyRow<Row>({
   rowIndex,
   rowKey,
   rowSelectable,
+  selectGroupAriaLabel,
+  selectRowAriaLabel,
   size,
   textSize,
   toggleGroupKeys,
   toggleRowKey,
 }: TableBodyRowProps<Row>): ReactNode {
+  const selectionLabelId = useId();
+  const visibleText = resolveRowVisibleText(row, rowCheckboxColumnKey);
   // Заголовок группы с непустым набором членов получает групповой чекбокс:
   // выбрать или снять всю группу, включая свёрнутые строки.
   const isGroupSelector =
     checkable && !rowSelectable && (groupMemberKeys?.length ?? 0) > 0;
-  const selectionAriaLabel = resolveSelectionAriaLabel(
-    resolveRowVisibleText(row, rowCheckboxColumnKey),
-    isGroupSelector
-  );
-  const groupCheckbox = isGroupSelector ? (
-    <TableCheckbox
-      ariaLabel={selectionAriaLabel}
-      checked={groupSelected}
-      onToggle={() => {
-        toggleGroupKeys(groupMemberKeys ?? []);
-      }}
-    />
-  ) : null;
   const { pointerProps } = useLongPress({
     disabled: !onEditRow || editRowActive || !rowSelectable,
     onLongPress: onEditRow ? () => onEditRow(row) : undefined,
@@ -704,19 +1018,35 @@ function TableBodyRow<Row>({
         const isCheckboxColumn = checkable && column.key === rowCheckboxColumnKey;
         const showRowCheckbox = rowSelectable && isCheckboxColumn;
         const showGroupCheckbox = isGroupSelector && isCheckboxColumn;
+        const showSelectionCheckbox = showRowCheckbox || showGroupCheckbox;
+        const attachment =
+          showSelectionCheckbox && visibleText !== ''
+            ? resolveSelectionLabel(cellContent, selectionLabelId, visibleText)
+            : undefined;
+        const columnContent =
+          attachment?.attached === true ? attachment.node : cellContent;
+        const selectionName: TableCheckboxNameProps =
+          attachment?.attached === true && attachment.labelId !== undefined
+            ? { ariaLabelledBy: attachment.labelId }
+            : {
+                ariaLabel: showGroupCheckbox ? selectGroupAriaLabel : selectRowAriaLabel,
+              };
         const showRowActionsInColumn =
           actionsColumnKey !== undefined && column.key === actionsColumnKey;
-
-        const rowCheckbox = showRowCheckbox ? (
+        const leadCheckbox = showSelectionCheckbox && (
           <TableCheckbox
-            ariaLabel={selectionAriaLabel}
-            checked={isSelected}
+            {...selectionName}
+            checked={showGroupCheckbox ? groupSelected : isSelected}
             onToggle={() => {
+              if (showGroupCheckbox) {
+                toggleGroupKeys(groupMemberKeys ?? []);
+                return;
+              }
+
               toggleRowKey(rowKey);
             }}
           />
-        ) : null;
-        const leadCheckbox = rowCheckbox ?? (showGroupCheckbox ? groupCheckbox : null);
+        );
         const showEditButton =
           showRowActionsInColumn &&
           isSelected &&
@@ -731,12 +1061,13 @@ function TableBodyRow<Row>({
             aria-controls={editPanelId}
             aria-expanded={isEditAnchor}
             aria-haspopup="dialog"
+            aria-label={editLabel === undefined ? DEFAULT_TABLE_EDIT_LABEL : undefined}
             size={TABLE_ROW_ACTION_SIZE_PRESET}
             tone="primary"
             onClick={handleEditRowClick}
             onKeyDown={handleEditRowKeyDown}
           >
-            {TABLE_EDIT_ACTION_LABEL}
+            {editLabel}
           </Button>
         ) : null;
         const rowDelete = showRowDelete ? renderSelectedRowActions(row) : null;
@@ -745,12 +1076,12 @@ function TableBodyRow<Row>({
         const bodyContent =
           (showTrailingActions && (
             <StyledTableCellTrailing>
-              {cellContent}
+              {columnContent}
               {editButton}
               {rowDelete}
             </StyledTableCellTrailing>
           )) ||
-          cellContent;
+          columnContent;
 
         return (
           <TableCell
@@ -804,13 +1135,17 @@ export function Table<Row>(props: TableProps<Row>) {
     addError,
     addHint = DEFAULT_ADD_HINT,
     addRowActive: addRowActiveProp = DEFAULT_TABLE_ADD_ROW_ACTIVE,
+    addRowAriaLabel,
     addRowSource,
     allSelectableKeys: allSelectableKeysProp,
     checkable: checkableProp,
+    clearSelectionAriaLabel,
     columns,
     editError,
     editHint = DEFAULT_EDIT_HINT,
+    editLabel,
     editRowActive: editRowActiveProp = DEFAULT_TABLE_EDIT_ROW_ACTIVE,
+    editRowAriaLabel,
     editRowKey,
     editable = DEFAULT_TABLE_EDITABLE,
     getRowGroupMemberKeys: getRowGroupMemberKeysProp,
@@ -829,6 +1164,9 @@ export function Table<Row>(props: TableProps<Row>) {
     renderSelectedRowActions,
     rowCheckboxColumnKey: rowCheckboxColumnKeyProp,
     rows,
+    selectAllAriaLabel,
+    selectGroupAriaLabel,
+    selectRowAriaLabel,
     selectedKeys: selectedKeysProp,
     selectedRowActionsColumnKey,
     showBorder,
@@ -838,6 +1176,36 @@ export function Table<Row>(props: TableProps<Row>) {
   } = props;
 
   const resolvedNumbered = numbered ?? DEFAULT_TABLE_NUMBERED;
+  const resolvedAddRowAriaLabel = resolvePhrase(
+    addRowAriaLabel,
+    DEFAULT_TABLE_ADD_ROW_ARIA_LABEL
+  );
+  const resolvedEditRowAriaLabel = resolvePhrase(
+    editRowAriaLabel,
+    DEFAULT_TABLE_EDIT_ROW_ARIA_LABEL
+  );
+  const resolvedEditLabel =
+    editLabel === undefined
+      ? DEFAULT_TABLE_EDIT_LABEL
+      : editLabel.trim() === ''
+        ? undefined
+        : editLabel;
+  const resolvedSelectAllAriaLabel = resolvePhrase(
+    selectAllAriaLabel,
+    DEFAULT_TABLE_SELECT_ALL_ARIA_LABEL
+  );
+  const resolvedClearSelectionAriaLabel = resolvePhrase(
+    clearSelectionAriaLabel,
+    DEFAULT_TABLE_CLEAR_SELECTION_ARIA_LABEL
+  );
+  const resolvedSelectRowAriaLabel = resolvePhrase(
+    selectRowAriaLabel,
+    DEFAULT_TABLE_SELECT_ROW_ARIA_LABEL
+  );
+  const resolvedSelectGroupAriaLabel = resolvePhrase(
+    selectGroupAriaLabel,
+    DEFAULT_TABLE_SELECT_GROUP_ARIA_LABEL
+  );
 
   // Проп editable: без него таблица только выводит строки, без добавления,
   // редактирования, панелей и long-press.
@@ -988,8 +1356,8 @@ export function Table<Row>(props: TableProps<Row>) {
           <TableCheckbox
             ariaLabel={
               headerSelectionActive
-                ? TABLE_CLEAR_SELECTION_ARIA_LABEL
-                : TABLE_SELECT_ALL_ARIA_LABEL
+                ? resolvedClearSelectionAriaLabel
+                : resolvedSelectAllAriaLabel
             }
             checked={headerSelectionActive}
             onToggle={toggleAllRows}
@@ -1002,7 +1370,7 @@ export function Table<Row>(props: TableProps<Row>) {
             aria-controls={addPanelId}
             aria-expanded={showAddPanel && addRowSource === addSource}
             aria-haspopup="dialog"
-            aria-label={TABLE_ADD_ROW_ARIA_LABEL}
+            aria-label={resolvedAddRowAriaLabel}
             as="button"
             disabled={!onAddRow || addRowActive || editRowActive}
             ref={addSource === 'head' ? headAddButtonRef : footAddButtonRef}
@@ -1211,7 +1579,7 @@ export function Table<Row>(props: TableProps<Row>) {
       <StyledTableRowPanel
         $anchorBlockEnd={addRowSource === 'foot'}
         $hasError={hasAddError}
-        aria-label={TABLE_ADD_ROW_ARIA_LABEL}
+        aria-label={resolvedAddRowAriaLabel}
         aria-modal={true}
         id={addPanelId}
         ref={panelRef}
@@ -1257,7 +1625,7 @@ export function Table<Row>(props: TableProps<Row>) {
       >
         <StyledTableRowPanel
           $hasError={hasEditError}
-          aria-label={TABLE_EDIT_ROW_ARIA_LABEL}
+          aria-label={resolvedEditRowAriaLabel}
           aria-modal={true}
           id={editPanelId}
           ref={editPanelRef}
@@ -1303,6 +1671,7 @@ export function Table<Row>(props: TableProps<Row>) {
                 anchorRef={editRowAnchorRef}
                 checkable={checkable}
                 columns={columns}
+                editLabel={resolvedEditLabel}
                 editPanelId={editPanelId}
                 editRowActive={editRowActive}
                 groupMemberKeys={groupMemberKeys}
@@ -1319,6 +1688,8 @@ export function Table<Row>(props: TableProps<Row>) {
                 rowIndex={rowIndex}
                 rowKey={rowKey}
                 rowSelectable={isRowSelectable(row)}
+                selectGroupAriaLabel={resolvedSelectGroupAriaLabel}
+                selectRowAriaLabel={resolvedSelectRowAriaLabel}
                 size={size}
                 textSize={textSize}
                 toggleGroupKeys={toggleGroupKeys}

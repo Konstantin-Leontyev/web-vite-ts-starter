@@ -2,8 +2,9 @@
  * Файл: `src/pages/showcase/date-range-input-settings/index.tsx`
  * Определяет панель настроек компонента DateRangeInput в витрине дизайн-системы.
  * Содержит контролы для изменения подписи, размера, формы, тона рамки,
- * показа сброса, формы подсветки дня, формы кнопок подвала, границ дней
- * и состояния `disabled` в реальном времени. Сброс стартует выключенным.
+ * показа сброса, формы подсветки дня, формы кнопок подвала, текстов `Set`,
+ * `Reset` и `Close`, подписей дней недели, границ дней и состояния `disabled`
+ * в реальном времени. Сброс стартует выключенным.
  *
  * Основные задачи:
  * 1. Типизировать состояние витрины через `DateRangeInputWidgetState`
@@ -16,6 +17,13 @@
 import { type ChangeEvent } from 'react';
 
 import { Checkbox } from '@ui/checkbox';
+import {
+  DEFAULT_CALENDAR_WEEKDAY_LABELS,
+  DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
+  DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
+  DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
+  type CalendarWeekdayLabels,
+} from '@ui/date-range-input';
 import { Input } from '@ui/input';
 import { SHAPE_PRESET_KEYS, type ShapePreset, type SizePreset } from '@ui/presets';
 import { type TonePreset } from '@ui/tones';
@@ -24,6 +32,21 @@ import { BorderGroup } from '../border-group';
 import { ControlGroup } from '../control-group';
 import { ShapeListbox } from '../shape-listbox';
 import { StyledSettingsForm } from '../showcase.styles';
+import { TextGroup } from '../text-group';
+
+/**
+ * WEEKDAY_LABEL_PREFIXES — задаёт префиксы подписей дней недели в панели.
+ * Порядок — с понедельника по воскресенье.
+ */
+const WEEKDAY_LABEL_PREFIXES = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+] as const;
 
 /**
  * DateRangeInputWidgetState — представляет состояние настроек компонента DateRangeInput в витрине дизайн-системы.
@@ -32,30 +55,38 @@ import { StyledSettingsForm } from '../showcase.styles';
  *
  * @property borderTone — тон рамки
  * @property buttonShape — форма кнопок подвала панели. Стартует с формы контрола
+ * @property commitLabel — видимый текст кнопки подтверждения
  * @property dayShape — форма подсветки дня в панели. Стартует с формы контрола
+ * @property dismissLabel — видимый текст кнопки закрытия панели
  * @property disabled — включает недоступное состояние
  * @property endDay — буфер конечного дня диапазона в превью. В панель не выносится
  * @property label — подпись над рядом сегментов
  * @property maxDay — верхняя граница допустимых дней в формате ISO
  * @property minDay — нижняя граница допустимых дней в формате ISO
+ * @property resetLabel — видимый текст кнопки сброса черновика
  * @property shape — форма поверхности
  * @property size — размер компонента
  * @property startDay — буфер начального дня диапазона в превью. В панель не выносится
+ * @property weekdayLabels — подписи дней недели с понедельника по воскресенье
  * @property withClear — витринный ключ показа сброса. Стартует выключенным:
  *   превью без `onClear`
  */
 export type DateRangeInputWidgetState = {
   borderTone: TonePreset;
   buttonShape: ShapePreset;
+  commitLabel: string;
   dayShape: ShapePreset;
   disabled: boolean;
+  dismissLabel: string;
   endDay: string;
   label: string;
   maxDay: string;
   minDay: string;
+  resetLabel: string;
   shape: ShapePreset;
   size: SizePreset;
   startDay: string;
+  weekdayLabels: CalendarWeekdayLabels;
   withClear: boolean;
 };
 
@@ -125,6 +156,66 @@ export function DateRangeInputSettings({
         value={state.buttonShape}
         onChange={(shape) => onChange('buttonShape', shape)}
       />
+
+      <TextGroup
+        contents={[
+          {
+            boxedString: DEFAULT_DATE_RANGE_INPUT_COMMIT_LABEL,
+            value: state.commitLabel,
+            onChange: (value) => onChange('commitLabel', value),
+          },
+        ]}
+        labelPrefix="Commit text"
+      />
+
+      <TextGroup
+        contents={[
+          {
+            boxedString: DEFAULT_DATE_RANGE_INPUT_RESET_LABEL,
+            value: state.resetLabel,
+            onChange: (value) => onChange('resetLabel', value),
+          },
+        ]}
+        labelPrefix="Reset text"
+      />
+
+      <TextGroup
+        contents={[
+          {
+            boxedString: DEFAULT_DATE_RANGE_INPUT_DISMISS_LABEL,
+            value: state.dismissLabel,
+            onChange: (value) => onChange('dismissLabel', value),
+          },
+        ]}
+        labelPrefix="Close text"
+      />
+
+      {WEEKDAY_LABEL_PREFIXES.map((prefix, index) => (
+        <TextGroup
+          contents={[
+            {
+              boxedString: DEFAULT_CALENDAR_WEEKDAY_LABELS[index],
+              value: state.weekdayLabels[index],
+              onChange: (value) => {
+                const next = [...state.weekdayLabels] as [
+                  string,
+                  string,
+                  string,
+                  string,
+                  string,
+                  string,
+                  string,
+                ];
+
+                next[index] = value;
+                onChange('weekdayLabels', next);
+              },
+            },
+          ]}
+          key={prefix}
+          labelPrefix={prefix}
+        />
+      ))}
 
       <Input
         label="Min day:"

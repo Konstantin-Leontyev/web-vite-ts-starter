@@ -13,9 +13,13 @@
  * Основные задачи:
  * 1. Экспортировать компонент ScrollPort
  * 2. Типизировать пропсы через `ScrollPortProps`
+ * 3. Реэкспортировать `DEFAULT_SCROLL_PORT_PADDING_INLINE_START`,
+ *    `DEFAULT_SCROLL_PORT_PADDING_INLINE_END` и `SCROLLBAR_TRACK_WIDTH`
  *
  * Потребители:
  *  - `@ui/table` — оборачивает таблицу в прокручиваемый контейнер
+ *  - `src/pages/showcase/showcase.styles.ts` — читает отступы вьюпорта
+ *    и `SCROLLBAR_TRACK_WIDTH` в пороге раскладки
  *  - `src/pages/showcase` — демонстрирует состояния в витрине
  */
 import {
@@ -35,6 +39,7 @@ import {
   DEFAULT_SCROLL_PORT_PADDING_INLINE_END,
   DEFAULT_SCROLL_PORT_PADDING_INLINE_START,
   DEFAULT_SCROLL_PORT_SHOW_VEIL,
+  SCROLLBAR_TRACK_WIDTH,
   StyledScrollPortContainer,
   StyledScrollPortRoot,
   StyledScrollPortViewport,
@@ -243,3 +248,9 @@ export function ScrollPort({
     </StyledScrollPortRoot>
   );
 }
+
+export {
+  DEFAULT_SCROLL_PORT_PADDING_INLINE_END,
+  DEFAULT_SCROLL_PORT_PADDING_INLINE_START,
+  SCROLLBAR_TRACK_WIDTH,
+};

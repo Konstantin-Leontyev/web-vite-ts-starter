@@ -2,7 +2,8 @@
  * Файл: `src/pages/showcase/toolbar-settings/index.tsx`
  * Определяет панель настроек компонента Toolbar в витрине дизайн-системы.
  * Содержит контролы для изменения размера, формы, рамки, тени, заливки,
- * рамки и тени действий, набора действий и поля поиска в реальном времени.
+ * рамки и тени действий, набора действий, подсказки кнопки поиска и поля поиска
+ * в реальном времени.
  * Включён поиск — форма становится скруглённой `rounded`, список формы недоступен.
  * Выбрана капсула `pill` — флажок поиска недоступен.
  *
@@ -31,7 +32,7 @@ import {
 } from '@ui/presets';
 import { type SurfaceBackgroundPreset } from '@ui/surface';
 import { type TonePreset } from '@ui/tones';
-import { resolveToolbarFieldSize } from '@ui/toolbar';
+import { DEFAULT_TOOLBAR_SEARCH_TITLE, resolveToolbarFieldSize } from '@ui/toolbar';
 
 import { ActionBorderGroup } from '../action-border-group';
 import { BackgroundListbox } from '../background-listbox';
@@ -42,6 +43,7 @@ import { ShapeListbox } from '../shape-listbox';
 import { ICON_OPTIONS, type IconKey } from '../showcase-icon-options';
 import { StyledSettingsForm } from '../showcase.styles';
 import { SizeListbox } from '../size-listbox';
+import { TextGroup } from '../text-group';
 
 /**
  * ToolbarWidgetState — представляет состояние настроек компонента Toolbar в витрине дизайн-системы.
@@ -63,6 +65,7 @@ import { SizeListbox } from '../size-listbox';
  * @property searchPlaceholder — плейсхолдер поля поиска
  * @property searchShape — форма поля поиска
  * @property searchSize — размер поля поиска
+ * @property searchTitle — подсказка кнопки поиска
  * @property shape — форма панели
  * @property showActionBorder — включает рамку действий
  * @property showActionShadow — включает тень действий при включённой рамке
@@ -90,6 +93,7 @@ export type ToolbarWidgetState = {
   searchPlaceholder: string;
   searchShape: ShapePreset;
   searchSize: SizePreset;
+  searchTitle: string;
   shape: ShapePreset;
   showActionBorder: boolean;
   showActionShadow: boolean;
@@ -198,46 +202,59 @@ export function ToolbarSettings({ onChange, state }: ToolbarSettingsProps) {
       </Checkbox>
 
       {state.showSearchField && (
-        <SearchFieldGroup
-          borderTone={state.searchFieldBorderTone}
-          disabled={state.searchDisabled}
-          iconFill={state.searchFieldIconFill}
-          iconKey={state.searchIconKey}
-          iconOptions={ICON_OPTIONS}
-          iconPosition={state.searchFieldIconPosition}
-          iconTone={state.searchFieldIconTone}
-          labelPrefix="Search field"
-          placeholder={state.searchPlaceholder}
-          shape={state.searchShape}
-          showBorder={state.showSearchFieldBorder}
-          showClearButton={state.showSearchFieldClearButton}
-          showIcon={state.showSearchFieldIcon}
-          showOutline={state.showSearchFieldOutline}
-          showShadow={state.showSearchFieldShadow}
-          size={state.searchSize}
-          tinted={state.tinted}
-          onBorderToneChange={(tone) => onChange('searchFieldBorderTone', tone)}
-          onDisabledChange={(disabled) => onChange('searchDisabled', disabled)}
-          onIconFillChange={(tone) => onChange('searchFieldIconFill', tone)}
-          onIconKeyChange={(iconKey) => onChange('searchIconKey', iconKey as IconKey)}
-          onIconPositionChange={(position) =>
-            onChange('searchFieldIconPosition', position)
-          }
-          onIconToneChange={(tone) => onChange('searchFieldIconTone', tone)}
-          onPlaceholderChange={(placeholder) =>
-            onChange('searchPlaceholder', placeholder)
-          }
-          onShapeChange={(shape) => onChange('searchShape', shape)}
-          onShowBorderChange={(show) => onChange('showSearchFieldBorder', show)}
-          onShowClearButtonChange={(show) =>
-            onChange('showSearchFieldClearButton', show)
-          }
-          onShowIconChange={(show) => onChange('showSearchFieldIcon', show)}
-          onShowOutlineChange={(show) => onChange('showSearchFieldOutline', show)}
-          onShowShadowChange={(show) => onChange('showSearchFieldShadow', show)}
-          onSizeChange={(size) => onChange('searchSize', size)}
-          onTintedChange={(tinted) => onChange('tinted', tinted)}
-        />
+        <>
+          <TextGroup
+            contents={[
+              {
+                boxedString: DEFAULT_TOOLBAR_SEARCH_TITLE,
+                onChange: (value) => onChange('searchTitle', value),
+                value: state.searchTitle,
+              },
+            ]}
+            labelPrefix="Search tooltip"
+          />
+
+          <SearchFieldGroup
+            borderTone={state.searchFieldBorderTone}
+            disabled={state.searchDisabled}
+            iconFill={state.searchFieldIconFill}
+            iconKey={state.searchIconKey}
+            iconOptions={ICON_OPTIONS}
+            iconPosition={state.searchFieldIconPosition}
+            iconTone={state.searchFieldIconTone}
+            labelPrefix="Search field"
+            placeholder={state.searchPlaceholder}
+            shape={state.searchShape}
+            showBorder={state.showSearchFieldBorder}
+            showClearButton={state.showSearchFieldClearButton}
+            showIcon={state.showSearchFieldIcon}
+            showOutline={state.showSearchFieldOutline}
+            showShadow={state.showSearchFieldShadow}
+            size={state.searchSize}
+            tinted={state.tinted}
+            onBorderToneChange={(tone) => onChange('searchFieldBorderTone', tone)}
+            onDisabledChange={(disabled) => onChange('searchDisabled', disabled)}
+            onIconFillChange={(tone) => onChange('searchFieldIconFill', tone)}
+            onIconKeyChange={(iconKey) => onChange('searchIconKey', iconKey as IconKey)}
+            onIconPositionChange={(position) =>
+              onChange('searchFieldIconPosition', position)
+            }
+            onIconToneChange={(tone) => onChange('searchFieldIconTone', tone)}
+            onPlaceholderChange={(placeholder) =>
+              onChange('searchPlaceholder', placeholder)
+            }
+            onShapeChange={(shape) => onChange('searchShape', shape)}
+            onShowBorderChange={(show) => onChange('showSearchFieldBorder', show)}
+            onShowClearButtonChange={(show) =>
+              onChange('showSearchFieldClearButton', show)
+            }
+            onShowIconChange={(show) => onChange('showSearchFieldIcon', show)}
+            onShowOutlineChange={(show) => onChange('showSearchFieldOutline', show)}
+            onShowShadowChange={(show) => onChange('showSearchFieldShadow', show)}
+            onSizeChange={(size) => onChange('searchSize', size)}
+            onTintedChange={(tinted) => onChange('tinted', tinted)}
+          />
+        </>
       )}
     </StyledSettingsForm>
   );

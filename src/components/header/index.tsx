@@ -52,6 +52,12 @@ import {
 const DEFAULT_HEADER_SETTINGS_LABEL = 'Showcase';
 
 /**
+ * DEFAULT_HEADER_BRAND_TEXT — задаёт видимый текст бренда по умолчанию.
+ * Используется, когда вызывающий код не передал проп `brand`.
+ */
+const DEFAULT_HEADER_BRAND_TEXT = 'Project Name';
+
+/**
  * HeaderProps — представляет пропсы компонента Header.
  *
  * @property autoHide — включает режим скрытия шапки
@@ -143,7 +149,7 @@ export function Header({
     autoHide ?? DEFAULT_HEADER_AUTO_HIDE
   );
   const handleSettingsClick = onSettingsClick ?? (() => navigate('/showcase'));
-  const brandNode = brand ?? <Text size="bold">Project Name</Text>;
+  const brandNode = brand ?? <Text size="bold">{DEFAULT_HEADER_BRAND_TEXT}</Text>;
 
   return (
     <>

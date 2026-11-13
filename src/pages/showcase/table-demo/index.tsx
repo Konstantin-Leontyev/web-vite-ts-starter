@@ -839,6 +839,7 @@ export function TableDemo({ settings }: TableDemoProps): ReactNode {
     ? {
         ...(settings.addHint.trim() !== '' ? { addHint: settings.addHint } : {}),
         ...(settings.editHint.trim() !== '' ? { editHint: settings.editHint } : {}),
+        ...(settings.editLabel.trim() !== '' ? { editLabel: settings.editLabel } : {}),
         editable: true,
         onAddCancel: resetAddRow,
         onAddRow: handleAddRowRequest,

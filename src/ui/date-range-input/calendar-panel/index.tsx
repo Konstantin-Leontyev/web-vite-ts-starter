@@ -19,6 +19,16 @@
  *  - ссылку на первый доступный день через проп `firstAvailableDayRef`
  *  - ссылку на выбранный доступный день через проп `selectedDayRef`
  *  - ссылку на сегодняшний доступный день через проп `todayDayRef`
+ *  - доступное имя кнопки «год назад» через проп `previousYearAriaLabel`. Без пропа —
+ *    `Previous year`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки «месяц назад» через проп `previousMonthAriaLabel`. Без пропа —
+ *    `Previous month`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки «месяц вперёд» через проп `nextMonthAriaLabel`. Без пропа —
+ *    `Next month`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки «год вперёд» через проп `nextYearAriaLabel`. Без пропа —
+ *    `Next year`. Пустая строка остаётся этой фразой
+ *  - подписи дней недели через проп `weekdayLabels`. Без пропа — `Mon` … `Sun`.
+ *    Пустая строка дня прячет видимую подпись, доступное имя остаётся умолчанием этого дня
  *
  * Основные задачи:
  * 1. Экспортировать компонент CalendarPanel
@@ -64,7 +74,7 @@ import {
   type CalendarPanelStyleProps,
 } from './calendar-panel.styles';
 import {
-  WEEKDAY_LABELS,
+  DEFAULT_CALENDAR_WEEKDAY_LABELS,
   addDaysToIsoDay,
   addMonths,
   addMonthsToIsoDay,
@@ -83,28 +93,38 @@ import {
   isIsoDayInBounds,
   monthViewFromIsoDay,
   todayUtc,
+  type CalendarWeekdayLabels,
   type MonthView,
 } from './day';
 
 /**
- * CALENDAR_NAV_PREVIOUS_YEAR_ARIA_LABEL — задаёт `aria-label` кнопки «год назад».
+ * DEFAULT_CALENDAR_PREVIOUS_YEAR_ARIA_LABEL — задаёт доступное имя кнопки «год назад» по умолчанию.
+ * Используется, когда вызывающий код не передал проп `previousYearAriaLabel`.
  */
-const CALENDAR_NAV_PREVIOUS_YEAR_ARIA_LABEL = 'Previous year';
+const DEFAULT_CALENDAR_PREVIOUS_YEAR_ARIA_LABEL = 'Previous year';
 
 /**
- * CALENDAR_NAV_PREVIOUS_MONTH_ARIA_LABEL — задаёт `aria-label` кнопки «месяц назад».
+ * DEFAULT_CALENDAR_PREVIOUS_MONTH_ARIA_LABEL — задаёт доступное имя кнопки «месяц назад» по умолчанию.
+ * Используется, когда вызывающий код не передал проп `previousMonthAriaLabel`.
  */
-const CALENDAR_NAV_PREVIOUS_MONTH_ARIA_LABEL = 'Previous month';
+const DEFAULT_CALENDAR_PREVIOUS_MONTH_ARIA_LABEL = 'Previous month';
 
 /**
- * CALENDAR_NAV_NEXT_MONTH_ARIA_LABEL — задаёт `aria-label` кнопки «месяц вперёд».
+ * DEFAULT_CALENDAR_NEXT_MONTH_ARIA_LABEL — задаёт доступное имя кнопки «месяц вперёд» по умолчанию.
+ * Используется, когда вызывающий код не передал проп `nextMonthAriaLabel`.
  */
-const CALENDAR_NAV_NEXT_MONTH_ARIA_LABEL = 'Next month';
+const DEFAULT_CALENDAR_NEXT_MONTH_ARIA_LABEL = 'Next month';
 
 /**
- * CALENDAR_NAV_NEXT_YEAR_ARIA_LABEL — задаёт `aria-label` кнопки «год вперёд».
+ * DEFAULT_CALENDAR_NEXT_YEAR_ARIA_LABEL — задаёт доступное имя кнопки «год вперёд» по умолчанию.
+ * Используется, когда вызывающий код не передал проп `nextYearAriaLabel`.
  */
-const CALENDAR_NAV_NEXT_YEAR_ARIA_LABEL = 'Next year';
+const DEFAULT_CALENDAR_NEXT_YEAR_ARIA_LABEL = 'Next year';
+
+/**
+ * CALENDAR_WEEK_LENGTH — задаёт число дней в неделе сетки.
+ */
+const CALENDAR_WEEK_LENGTH = DEFAULT_CALENDAR_WEEKDAY_LABELS.length;
 
 /**
  * CalendarPanelProps — представляет пропсы компонента CalendarPanel.
@@ -112,27 +132,43 @@ const CALENDAR_NAV_NEXT_YEAR_ARIA_LABEL = 'Next year';
  * @property firstAvailableDayRef — ссылка на первый доступный день
  * @property maxDay — верхняя граница допустимых дней в формате ISO
  * @property minDay — нижняя граница допустимых дней в формате ISO
+ * @property nextMonthAriaLabel — доступное имя кнопки «месяц вперёд». Без пропа —
+ *   `Next month`. Пустая строка остаётся этой фразой
+ * @property nextYearAriaLabel — доступное имя кнопки «год вперёд». Без пропа —
+ *   `Next year`. Пустая строка остаётся этой фразой
  * @property onCommitDay — обработчик подтверждения дня. `Enter` на дне вызывает его
  * @property onSelectDay — обработчик выбора дня
  * @property onViewMonthChange — обработчик смены отображаемого месяца
+ * @property previousMonthAriaLabel — доступное имя кнопки «месяц назад». Без пропа —
+ *   `Previous month`. Пустая строка остаётся этой фразой
+ * @property previousYearAriaLabel — доступное имя кнопки «год назад». Без пропа —
+ *   `Previous year`. Пустая строка остаётся этой фразой
  * @property rangeEnd — конечный день диапазона в формате ISO
  * @property rangeStart — начальный день диапазона в формате ISO
  * @property selectedDayRef — ссылка на выбранный доступный день
  * @property todayDayRef — ссылка на сегодняшний доступный день
  * @property viewMonth — отображаемый месяц панели
+ * @property weekdayLabels — подписи дней недели с понедельника по воскресенье.
+ *   Без пропа — `Mon` … `Sun`. Пустая строка дня прячет видимую подпись,
+ *   доступное имя остаётся умолчанием этого дня
  */
 type CalendarPanelProps = CalendarPanelStyleProps & {
   firstAvailableDayRef?: Ref<HTMLButtonElement | null>;
   maxDay?: string;
   minDay?: string;
+  nextMonthAriaLabel?: string;
+  nextYearAriaLabel?: string;
   onCommitDay: (isoDay: string) => void;
   onSelectDay: (isoDay: string) => void;
   onViewMonthChange: (viewMonth: MonthView) => void;
+  previousMonthAriaLabel?: string;
+  previousYearAriaLabel?: string;
   rangeEnd?: string;
   rangeStart?: string;
   selectedDayRef?: Ref<HTMLButtonElement | null>;
   todayDayRef?: Ref<HTMLButtonElement | null>;
   viewMonth: MonthView;
+  weekdayLabels?: CalendarWeekdayLabels;
 };
 
 /**
@@ -200,7 +236,7 @@ function resolveEnabledEdgeIndex(enabled: boolean[], edge: 'end' | 'start'): num
  * @returns недели по семь ячеек
  */
 function chunkWeeks<T>(cells: T[]): T[][] {
-  const weekLength = WEEKDAY_LABELS.length;
+  const weekLength = CALENDAR_WEEK_LENGTH;
   const weeks: T[][] = [];
 
   for (let index = 0; index < cells.length; index += weekLength) {
@@ -228,9 +264,13 @@ export function CalendarPanel({
   firstAvailableDayRef,
   maxDay,
   minDay,
+  nextMonthAriaLabel,
+  nextYearAriaLabel,
   onCommitDay,
   onSelectDay,
   onViewMonthChange,
+  previousMonthAriaLabel,
+  previousYearAriaLabel,
   rangeEnd,
   rangeStart,
   selectedDayRef,
@@ -238,6 +278,7 @@ export function CalendarPanel({
   size,
   todayDayRef,
   viewMonth,
+  weekdayLabels = DEFAULT_CALENDAR_WEEKDAY_LABELS,
   ...rest
 }: CalendarPanelProps) {
   const { layoutProps } = splitLayoutProps(rest);
@@ -442,8 +483,8 @@ export function CalendarPanel({
       }
       case 'Home': {
         const cellIndex = cells.findIndex((cell) => cell.isoDay === isoDay);
-        const weekStart = cellIndex - (cellIndex % WEEKDAY_LABELS.length);
-        const weekEnd = weekStart + WEEKDAY_LABELS.length;
+        const weekStart = cellIndex - (cellIndex % CALENDAR_WEEK_LENGTH);
+        const weekEnd = weekStart + CALENDAR_WEEK_LENGTH;
 
         nextIso = cells
           .slice(weekStart, weekEnd)
@@ -452,8 +493,8 @@ export function CalendarPanel({
       }
       case 'End': {
         const cellIndex = cells.findIndex((cell) => cell.isoDay === isoDay);
-        const weekStart = cellIndex - (cellIndex % WEEKDAY_LABELS.length);
-        const weekEnd = weekStart + WEEKDAY_LABELS.length;
+        const weekStart = cellIndex - (cellIndex % CALENDAR_WEEK_LENGTH);
+        const weekEnd = weekStart + CALENDAR_WEEK_LENGTH;
 
         nextIso = [...cells.slice(weekStart, weekEnd)]
           .reverse()
@@ -494,7 +535,11 @@ export function CalendarPanel({
     <StyledCalendarPanelRoot {...layoutProps}>
       <StyledCalendarHeader>
         <StyledCalendarNavButton
-          aria-label={CALENDAR_NAV_PREVIOUS_YEAR_ARIA_LABEL}
+          aria-label={
+            previousYearAriaLabel !== undefined && previousYearAriaLabel.trim() !== ''
+              ? previousYearAriaLabel
+              : DEFAULT_CALENDAR_PREVIOUS_YEAR_ARIA_LABEL
+          }
           disabled={!canGoYearPrevious}
           ref={(node) => {
             navButtonRefs.current[0] = node;
@@ -517,7 +562,11 @@ export function CalendarPanel({
           </Icon>
         </StyledCalendarNavButton>
         <StyledCalendarNavButton
-          aria-label={CALENDAR_NAV_PREVIOUS_MONTH_ARIA_LABEL}
+          aria-label={
+            previousMonthAriaLabel !== undefined && previousMonthAriaLabel.trim() !== ''
+              ? previousMonthAriaLabel
+              : DEFAULT_CALENDAR_PREVIOUS_MONTH_ARIA_LABEL
+          }
           disabled={!canGoMonthPrevious}
           ref={(node) => {
             navButtonRefs.current[1] = node;
@@ -552,7 +601,11 @@ export function CalendarPanel({
           </Text>
         </StyledCalendarMonthTitle>
         <StyledCalendarNavButton
-          aria-label={CALENDAR_NAV_NEXT_MONTH_ARIA_LABEL}
+          aria-label={
+            nextMonthAriaLabel !== undefined && nextMonthAriaLabel.trim() !== ''
+              ? nextMonthAriaLabel
+              : DEFAULT_CALENDAR_NEXT_MONTH_ARIA_LABEL
+          }
           disabled={!canGoMonthNext}
           ref={(node) => {
             navButtonRefs.current[2] = node;
@@ -575,7 +628,11 @@ export function CalendarPanel({
           </Icon>
         </StyledCalendarNavButton>
         <StyledCalendarNavButton
-          aria-label={CALENDAR_NAV_NEXT_YEAR_ARIA_LABEL}
+          aria-label={
+            nextYearAriaLabel !== undefined && nextYearAriaLabel.trim() !== ''
+              ? nextYearAriaLabel
+              : DEFAULT_CALENDAR_NEXT_YEAR_ARIA_LABEL
+          }
           disabled={!canGoYearNext}
           ref={(node) => {
             navButtonRefs.current[3] = node;
@@ -601,13 +658,30 @@ export function CalendarPanel({
 
       <StyledCalendarGrid aria-labelledby={monthTitleId} role="grid">
         <StyledCalendarWeekdayRow role="row">
-          {WEEKDAY_LABELS.map((label) => (
-            <StyledCalendarWeekdayCell key={label} role="columnheader">
-              <Text align="center" ellipsis minInlineSize="0" size="thin" tone="muted">
-                {label}
-              </Text>
-            </StyledCalendarWeekdayCell>
-          ))}
+          {weekdayLabels.map((label, index) => {
+            const fallback = DEFAULT_CALENDAR_WEEKDAY_LABELS[index];
+            const visibleLabel = label.trim() === '' ? undefined : label;
+
+            return (
+              <StyledCalendarWeekdayCell
+                aria-label={visibleLabel === undefined ? fallback : undefined}
+                key={fallback}
+                role="columnheader"
+              >
+                {visibleLabel !== undefined && (
+                  <Text
+                    align="center"
+                    ellipsis
+                    minInlineSize="0"
+                    size="thin"
+                    tone="muted"
+                  >
+                    {visibleLabel}
+                  </Text>
+                )}
+              </StyledCalendarWeekdayCell>
+            );
+          })}
         </StyledCalendarWeekdayRow>
         {weeks.map((week) => (
           <StyledCalendarWeekRow key={week[0]?.isoDay} role="row">
@@ -697,9 +771,11 @@ export function CalendarPanel({
 
 export {
   DATE_PLACEHOLDER,
+  DEFAULT_CALENDAR_WEEKDAY_LABELS,
   formatIsoDayCompact,
   isIsoDayAfter,
   monthViewFromIsoDayOrToday,
   todayUtc,
+  type CalendarWeekdayLabels,
   type MonthView,
 } from './day';

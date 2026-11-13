@@ -125,13 +125,13 @@ type FieldClearProps = {
  *
  * @example
  * <FieldClear
- *   ariaLabel={resolveClearAriaLabel(label)}
+ *   ariaLabel="Clear input"
  *   disabled={disabled}
  *   size={size}
  *   onClick={handleClear}
  * />
  * <FieldClear
- *   ariaLabel={resolveClearAriaLabel(label, CLEAR_SEARCH_ARIA_LABEL)}
+ *   ariaLabel="Clear search"
  *   disabled={disabled}
  *   iconFill={iconFill}
  *   iconTone={iconTone}

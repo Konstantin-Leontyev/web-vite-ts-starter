@@ -4,6 +4,24 @@
  *
  * Поддерживает:
  *  - layout-пропсы: отступы, позиционирование, размеры
+ *  - видимое приветствие через проп `greeting`. Без пропа — `Hello, User!`.
+ *    Пустая строка прячет текст, имя диалога остаётся этой фразой
+ *  - видимый текст действия профиля через проп `profileLabel`. Без пропа — `Profile`.
+ *    Пустая строка прячет текст, имя кнопки остаётся этой фразой
+ *  - видимый текст действия выхода через проп `signOutLabel`. Без пропа — `Sign out`.
+ *    Пустая строка прячет текст, имя кнопки остаётся этой фразой
+ *  - видимый текст ссылки политики через проп `privacyLabel`. Без пропа —
+ *    `Privacy Policy`. Пустая строка прячет текст, имя ссылки остаётся этой фразой
+ *  - видимый текст ссылки условий через проп `termsLabel`. Без пропа —
+ *    `Terms of Service`. Пустая строка прячет текст, имя ссылки остаётся этой фразой
+ *  - почту в шапке панели через проп `displayEmail`. Без пропа — `user@example.com`.
+ *    Пустая строка убирает подзаголовок и подсказку триггера
+ *  - доступное имя кнопки меню через проп `triggerAriaLabel`. Без пропа —
+ *    `Profile menu for User`. Пустая строка остаётся этой фразой
+ *  - доступное имя кнопки закрытия через проп `closeAriaLabel`. Без пропа —
+ *    `Close profile menu`. Пустая строка остаётся этой фразой
+ *  - доступное имя навигации правовых ссылок через проп `legalAriaLabel`. Без пропа —
+ *    `Legal`. Пустая строка остаётся этой фразой
  *
  * Основные задачи:
  * 1. Экспортировать компонент ProfileMenu
@@ -43,19 +61,40 @@ import {
 } from './profile-menu.styles';
 
 /**
- * PROFILE_STUB — представляет заглушку данных профиля.
- * Используется в ProfileMenu до возврата данных из входа через Google.
+ * DEFAULT_PROFILE_MENU_EMAIL — задаёт почту в шапке панели по умолчанию.
+ * Используется, когда вызывающий код не передал проп `displayEmail`.
  */
-const PROFILE_STUB = {
-  displayEmail: 'user@example.com',
-  displayName: 'User',
-} as const;
+const DEFAULT_PROFILE_MENU_EMAIL = 'user@example.com';
 
 /**
- * PROFILE_MENU_CLOSE_ARIA_LABEL — задаёт доступное имя кнопки закрытия панели.
- * Используется в `headerActions` Card панели ProfileMenu.
+ * DEFAULT_PROFILE_MENU_TRIGGER_ARIA_LABEL — задаёт доступное имя кнопки меню по умолчанию.
+ * Используется, когда вызывающий код не передал проп `triggerAriaLabel`.
  */
-const PROFILE_MENU_CLOSE_ARIA_LABEL = 'Close profile menu';
+const DEFAULT_PROFILE_MENU_TRIGGER_ARIA_LABEL = 'Profile menu for User';
+
+/**
+ * DEFAULT_PROFILE_MENU_CLOSE_ARIA_LABEL — задаёт доступное имя кнопки закрытия панели по умолчанию.
+ * Используется, когда вызывающий код не передал проп `closeAriaLabel`.
+ */
+const DEFAULT_PROFILE_MENU_CLOSE_ARIA_LABEL = 'Close profile menu';
+
+/**
+ * DEFAULT_PROFILE_MENU_GREETING — задаёт видимое приветствие панели по умолчанию.
+ * Используется, когда вызывающий код не передал проп `greeting`.
+ */
+const DEFAULT_PROFILE_MENU_GREETING = 'Hello, User!';
+
+/**
+ * DEFAULT_PROFILE_MENU_PROFILE_LABEL — задаёт видимый текст действия профиля по умолчанию.
+ * Используется, когда вызывающий код не передал проп `profileLabel`.
+ */
+const DEFAULT_PROFILE_MENU_PROFILE_LABEL = 'Profile';
+
+/**
+ * DEFAULT_PROFILE_MENU_SIGN_OUT_LABEL — задаёт видимый текст действия выхода по умолчанию.
+ * Используется, когда вызывающий код не передал проп `signOutLabel`.
+ */
+const DEFAULT_PROFILE_MENU_SIGN_OUT_LABEL = 'Sign out';
 
 /**
  * PROFILE_MENU_CLOSE_ICON_PADDING — задаёт отступ окна Icon у кнопки закрытия.
@@ -78,18 +117,29 @@ const PROFILE_MENU_ACTIONS_PADDING_INLINE = 4;
 const PROFILE_MENU_ACTIONS_MARGIN_BLOCK_START = 12;
 
 /**
- * PROFILE_MENU_LEGAL_ARIA_LABEL — задаёт доступное имя навигации правовых ссылок.
- * Используется в `StyledProfileMenuLegal`.
+ * DEFAULT_PROFILE_MENU_LEGAL_ARIA_LABEL — задаёт доступное имя навигации правовых ссылок по умолчанию.
+ * Используется, когда вызывающий код не передал проп `legalAriaLabel`.
  */
-const PROFILE_MENU_LEGAL_ARIA_LABEL = 'Legal';
+const DEFAULT_PROFILE_MENU_LEGAL_ARIA_LABEL = 'Legal';
 
 /**
- * PROFILE_MENU_LEGAL_LINKS — задаёт перечень правовых ссылок меню профиля.
- * Используется в нижней навигации панели ProfileMenu.
+ * DEFAULT_PROFILE_MENU_PRIVACY_LABEL — задаёт видимый текст ссылки политики по умолчанию.
+ * Используется, когда вызывающий код не передал проп `privacyLabel`.
  */
-const PROFILE_MENU_LEGAL_LINKS = [
-  { label: 'Privacy Policy', to: '/privacy' },
-  { label: 'Terms of Service', to: '/terms' },
+const DEFAULT_PROFILE_MENU_PRIVACY_LABEL = 'Privacy Policy';
+
+/**
+ * DEFAULT_PROFILE_MENU_TERMS_LABEL — задаёт видимый текст ссылки условий по умолчанию.
+ * Используется, когда вызывающий код не передал проп `termsLabel`.
+ */
+const DEFAULT_PROFILE_MENU_TERMS_LABEL = 'Terms of Service';
+
+/**
+ * PROFILE_MENU_LEGAL_PATHS — задаёт адреса правовых ссылок меню профиля.
+ */
+const PROFILE_MENU_LEGAL_PATHS = [
+  { key: 'privacy', to: '/privacy' },
+  { key: 'terms', to: '/terms' },
 ] as const;
 
 /**
@@ -120,12 +170,100 @@ const PROFILE_MENU_INLINE_SIZE = `min(${PROFILE_MENU_PANEL_MIN_INLINE_SIZE_PX}px
 
 /**
  * ProfileMenuProps — представляет пропсы компонента ProfileMenu.
+ *
+ * @property closeAriaLabel — доступное имя кнопки закрытия. Без пропа —
+ *   `Close profile menu`. Пустая строка остаётся этой фразой
+ * @property displayEmail — почта в шапке панели. Без пропа — `user@example.com`.
+ *   Пустая строка убирает подзаголовок и подсказку триггера
+ * @property greeting — видимое приветствие. Без пропа — `Hello, User!`.
+ *   Пустая строка прячет текст, имя диалога остаётся этой фразой
+ * @property legalAriaLabel — доступное имя навигации правовых ссылок. Без пропа —
+ *   `Legal`. Пустая строка остаётся этой фразой
+ * @property privacyLabel — видимый текст ссылки политики. Без пропа — `Privacy Policy`.
+ *   Пустая строка прячет текст, имя ссылки остаётся этой фразой
+ * @property profileLabel — видимый текст действия профиля. Без пропа — `Profile`.
+ *   Пустая строка прячет текст, имя кнопки остаётся этой фразой
+ * @property signOutLabel — видимый текст действия выхода. Без пропа — `Sign out`.
+ *   Пустая строка прячет текст, имя кнопки остаётся этой фразой
+ * @property termsLabel — видимый текст ссылки условий. Без пропа — `Terms of Service`.
+ *   Пустая строка прячет текст, имя ссылки остаётся этой фразой
+ * @property triggerAriaLabel — доступное имя кнопки меню. Без пропа —
+ *   `Profile menu for User`. Пустая строка остаётся этой фразой
  */
-type ProfileMenuProps = ProfileMenuStyleProps &
-  Omit<
+type ProfileMenuProps = ProfileMenuStyleProps & {
+  closeAriaLabel?: string;
+  displayEmail?: string;
+  greeting?: string;
+  legalAriaLabel?: string;
+  privacyLabel?: string;
+  profileLabel?: string;
+  signOutLabel?: string;
+  termsLabel?: string;
+  triggerAriaLabel?: string;
+} & Omit<
     ComponentPropsWithRef<'div'>,
     'className' | 'style' | keyof ProfileMenuStyleProps
   >;
+
+/**
+ * resolveProfilePhrase — возвращает целую фразу имени.
+ * Пустая строка или пробелы остаются умолчанием.
+ *
+ * @param value переданный текст
+ * @param fallback умолчание фразы
+ * @returns фраза имени
+ */
+function resolveProfilePhrase(value: string | undefined, fallback: string): string {
+  if (value !== undefined && value.trim() !== '') {
+    return value;
+  }
+
+  return fallback;
+}
+
+/**
+ * resolveVisiblePhrase — возвращает видимый текст.
+ * Без пропа — умолчание. Пустая строка или пробелы — текста нет.
+ *
+ * @param value переданный текст
+ * @param fallback умолчание видимого текста
+ * @returns видимый текст или `undefined`
+ */
+function resolveVisiblePhrase(
+  value: string | undefined,
+  fallback: string
+): string | undefined {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (value.trim() === '') {
+    return undefined;
+  }
+
+  return value;
+}
+
+/**
+ * resolveSegmentLabel — возвращает видимый текст сегмента и имя без текста.
+ * Пустая строка прячет текст. Имя кнопки тогда — умолчание.
+ *
+ * @param value переданный текст
+ * @param fallback умолчание сегмента
+ * @returns подпись и доступное имя пустой кнопки
+ */
+function resolveSegmentLabel(
+  value: string | undefined,
+  fallback: string
+): { ariaLabel?: string; label: string } {
+  const visible = resolveVisiblePhrase(value, fallback);
+
+  if (visible === undefined) {
+    return { ariaLabel: fallback, label: '' };
+  }
+
+  return { label: visible };
+}
 
 /**
  * ProfileMenu — отображает меню профиля с аватаром, действиями и правовыми ссылками.
@@ -133,14 +271,47 @@ type ProfileMenuProps = ProfileMenuStyleProps &
  * @example
  * <ProfileMenu />
  */
-export function ProfileMenu(props: ProfileMenuProps) {
+export function ProfileMenu({
+  closeAriaLabel,
+  displayEmail,
+  greeting,
+  legalAriaLabel,
+  privacyLabel,
+  profileLabel,
+  signOutLabel,
+  termsLabel,
+  triggerAriaLabel,
+  ...props
+}: ProfileMenuProps) {
   const { handleClose, handleOpen, handleToggle, isOpen, panelRef } =
     useAnchoredOpen<HTMLDivElement>();
   const menuId = useId();
   const titleId = useId();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const profileActionRef = useRef<HTMLButtonElement>(null);
-  const { displayEmail, displayName } = PROFILE_STUB;
+  const emailText = resolveVisiblePhrase(displayEmail, DEFAULT_PROFILE_MENU_EMAIL);
+  const greetingText = resolveVisiblePhrase(greeting, DEFAULT_PROFILE_MENU_GREETING);
+  const privacyText = resolveVisiblePhrase(
+    privacyLabel,
+    DEFAULT_PROFILE_MENU_PRIVACY_LABEL
+  );
+  const termsText = resolveVisiblePhrase(termsLabel, DEFAULT_PROFILE_MENU_TERMS_LABEL);
+  const legalLinks = [
+    {
+      name: DEFAULT_PROFILE_MENU_PRIVACY_LABEL,
+      text: privacyText,
+      to: PROFILE_MENU_LEGAL_PATHS[0].to,
+    },
+    {
+      name: DEFAULT_PROFILE_MENU_TERMS_LABEL,
+      text: termsText,
+      to: PROFILE_MENU_LEGAL_PATHS[1].to,
+    },
+  ] as const;
+  const subtitleProps =
+    emailText === undefined
+      ? {}
+      : { subtitle: emailText, subtitleAlign: 'center' as const };
 
   function handleTriggerKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {
     if (event.key === 'ArrowDown') {
@@ -159,11 +330,14 @@ export function ProfileMenu(props: ProfileMenuProps) {
         aria-controls={menuId}
         aria-expanded={isOpen}
         aria-haspopup="dialog"
-        aria-label={`Profile menu for ${displayName}`}
+        aria-label={resolveProfilePhrase(
+          triggerAriaLabel,
+          DEFAULT_PROFILE_MENU_TRIGGER_ARIA_LABEL
+        )}
         as="button"
         ref={triggerRef}
         shape="round"
-        title={displayEmail}
+        title={emailText}
         onClick={handleToggle}
         onKeyDown={handleTriggerKeyDown}
       >
@@ -180,11 +354,17 @@ export function ProfileMenu(props: ProfileMenuProps) {
         onOpenFocus={handleOpenFocus}
       >
         <StyledProfileMenuPanel
-          aria-labelledby={titleId}
+          aria-label={
+            greetingText === undefined ? DEFAULT_PROFILE_MENU_GREETING : undefined
+          }
+          aria-labelledby={greetingText === undefined ? undefined : titleId}
           aria-modal={true}
           headerActions={[
             {
-              ariaLabel: PROFILE_MENU_CLOSE_ARIA_LABEL,
+              ariaLabel: resolveProfilePhrase(
+                closeAriaLabel,
+                DEFAULT_PROFILE_MENU_CLOSE_ARIA_LABEL
+              ),
               icon: <CloseIcon />,
               iconPadding: PROFILE_MENU_CLOSE_ICON_PADDING,
               onClick: handleClose,
@@ -197,8 +377,7 @@ export function ProfileMenu(props: ProfileMenuProps) {
           position="fixed"
           ref={panelRef}
           role="dialog"
-          subtitle={displayEmail}
-          subtitleAlign="center"
+          {...subtitleProps}
         >
           <StyledProfileMenuContent>
             <StyledProfileMenuHeader>
@@ -212,45 +391,69 @@ export function ProfileMenu(props: ProfileMenuProps) {
               >
                 <AvatarIcon />
               </Icon>
-              <Text align="center" as="p" id={titleId} size="extraBold">
-                Hello, {displayName}!
-              </Text>
+              {greetingText !== undefined && (
+                <Text align="center" as="p" id={titleId} size="extraBold">
+                  {greetingText}
+                </Text>
+              )}
             </StyledProfileMenuHeader>
 
             <SegmentButton
               left={{
+                ...resolveSegmentLabel(profileLabel, DEFAULT_PROFILE_MENU_PROFILE_LABEL),
                 icon: <AddCircleIcon />,
                 iconFill: 'primary',
                 iconPosition: 'start',
-                label: 'Profile',
                 ref: profileActionRef,
                 onClick: handleClose,
               }}
               marginBlockStart={PROFILE_MENU_ACTIONS_MARGIN_BLOCK_START}
               paddingInline={PROFILE_MENU_ACTIONS_PADDING_INLINE}
               right={{
+                ...resolveSegmentLabel(
+                  signOutLabel,
+                  DEFAULT_PROFILE_MENU_SIGN_OUT_LABEL
+                ),
                 icon: <SignOutIcon />,
-                label: 'Sign out',
                 onClick: handleClose,
               }}
               shape="pill"
             />
 
-            <StyledProfileMenuLegal aria-label={PROFILE_MENU_LEGAL_ARIA_LABEL}>
-              {PROFILE_MENU_LEGAL_LINKS.map((link, index) => (
-                <Fragment key={link.to}>
-                  {index > 0 && (
-                    <Text aria-hidden="true" tone="muted">
-                      ·
-                    </Text>
-                  )}
-                  <StyledProfileMenuLegalLink to={link.to} onClick={handleClose}>
-                    <Text align="center" size="thin">
-                      {link.label}
-                    </Text>
-                  </StyledProfileMenuLegalLink>
-                </Fragment>
-              ))}
+            <StyledProfileMenuLegal
+              aria-label={resolveProfilePhrase(
+                legalAriaLabel,
+                DEFAULT_PROFILE_MENU_LEGAL_ARIA_LABEL
+              )}
+            >
+              {legalLinks.map((link, index) => {
+                const previous = legalLinks[index - 1];
+                const showSeparator =
+                  previous !== undefined &&
+                  previous.text !== undefined &&
+                  link.text !== undefined;
+
+                return (
+                  <Fragment key={link.to}>
+                    {showSeparator && (
+                      <Text aria-hidden="true" tone="muted">
+                        ·
+                      </Text>
+                    )}
+                    <StyledProfileMenuLegalLink
+                      aria-label={link.text === undefined ? link.name : undefined}
+                      to={link.to}
+                      onClick={handleClose}
+                    >
+                      {link.text !== undefined && (
+                        <Text align="center" size="thin">
+                          {link.text}
+                        </Text>
+                      )}
+                    </StyledProfileMenuLegalLink>
+                  </Fragment>
+                );
+              })}
             </StyledProfileMenuLegal>
           </StyledProfileMenuContent>
         </StyledProfileMenuPanel>

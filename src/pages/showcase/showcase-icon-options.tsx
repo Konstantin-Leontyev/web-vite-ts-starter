@@ -45,8 +45,11 @@ import {
   SearchIcon,
   SettingsIcon,
   SignOutIcon,
+  StarFilledIcon,
+  StarIcon,
   SubtitlesIcon,
   UploadIcon,
+  VoiceChannelIcon,
 } from '@icons';
 import { ICON_SIZE_PRESET_KEYS, getIconPadding, type IconSizePreset } from '@ui/icon';
 import { type ListboxOption } from '@ui/listbox';
@@ -76,7 +79,10 @@ const ICONS = {
   search: () => <SearchIcon />,
   settings: () => <SettingsIcon />,
   'sign-out': () => <SignOutIcon />,
+  star: () => <StarIcon />,
+  'star-filled': () => <StarFilledIcon />,
   subtitles: () => <SubtitlesIcon />,
+  'voice-channel': () => <VoiceChannelIcon />,
 } satisfies Record<string, () => ReactNode>;
 
 /**

@@ -28,15 +28,16 @@
  *  - опциональный сброс выбора через проп `showClearButton`. Только у вида `field`.
  *    Базовая логика — шеврон. Кнопка сброса появляется при выборе, только когда
  *    проп включён
- *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа имя —
- *    `resolveClearAriaLabel`
+ *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа —
+ *    `Clear language`. Пустая строка остаётся этой фразой
  *
  * Основные задачи:
  * 1. Экспортировать компонент LocalePicker
  * 2. Типизировать пропсы через `LocalePickerProps`
  * 3. Реэкспортировать `getLocaleOptions`
  * 4. Всегда включать поиск и мягкую заливку поля в Listbox и не отдавать
- *    `multiple`, `inlineCheckbox` и `tinted`
+ *    `multiple`, `inlineCheckbox` и `tinted`. `selectedCountLabel` не отдаётся:
+ *    множественного выбора нет
  *
  * Потребители:
  *  - `src/pages/showcase` — демонстрирует состояния в витрине
@@ -56,6 +57,12 @@ import { getLocaleOptions } from './locales';
  * Используется, когда вызывающий код не передал проп `options`.
  */
 const DEFAULT_LOCALE_PICKER_OPTIONS = getLocaleOptions();
+
+/**
+ * DEFAULT_LOCALE_PICKER_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса языка по умолчанию.
+ * Используется, когда вызывающий код не передал проп `clearAriaLabel`.
+ */
+const DEFAULT_LOCALE_PICKER_CLEAR_ARIA_LABEL = 'Clear language';
 
 /**
  * resolveLocaleLookup — возвращает код опции по языковой метке.
@@ -126,7 +133,6 @@ function resolvePreferredLocaleValue(
 type LocalePickerProps = DistributiveOmit<
   ComponentProps<typeof Listbox>,
   | 'appearance'
-  | 'clearAriaLabel'
   | 'icon'
   | 'iconFill'
   | 'iconPosition'
@@ -141,6 +147,7 @@ type LocalePickerProps = DistributiveOmit<
   | 'searchFieldIconTone'
   | 'searchShape'
   | 'searchSize'
+  | 'selectedCountLabel'
   | 'showBorder'
   | 'showClearButton'
   | 'showSearchField'
@@ -193,7 +200,26 @@ export function LocalePicker({
     );
   }
 
-  return <Listbox {...rest} options={options} showSearchField tinted {...valueProps} />;
+  const clearProps = rest.showClearButton
+    ? {
+        clearAriaLabel:
+          rest.clearAriaLabel !== undefined && rest.clearAriaLabel.trim() !== ''
+            ? rest.clearAriaLabel
+            : DEFAULT_LOCALE_PICKER_CLEAR_ARIA_LABEL,
+        showClearButton: true as const,
+      }
+    : {};
+
+  return (
+    <Listbox
+      {...rest}
+      {...clearProps}
+      options={options}
+      showSearchField
+      tinted
+      {...valueProps}
+    />
+  );
 }
 
 /* eslint-disable react-refresh/only-export-components -- перечень опций для вызывающего кода */

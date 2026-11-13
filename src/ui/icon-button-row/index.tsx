@@ -23,8 +23,7 @@
  *    вместе `aria-expanded` и `aria-haspopup="listbox"`. Лупа раскрытия строки
  *    стрелки ряда не забирает. Цель фокуса слота — первая
  *    кнопка внутри: слот рассчитан на вид `icon` с одной кнопкой-триггером.
- *    Тип ряда не ограничивает число слотов и их место. Превью Toolbar ставит
- *    слот LocalePicker четвёртым окном, после субтитров
+ *    Тип ряда не ограничивает число слотов и их место
  *
  * Потребители:
  *  - `@ui/card` — рендерит ряд действий шапки
@@ -32,7 +31,7 @@
  *  - `@ui/toolbar` — рендерит ряд действий панели инструментов
  *  - `src/pages/showcase/icon-row-group/icon-row-group.ts` — собирает действия
  *    превью через `IconButtonRowAction`
- *  - `src/pages/showcase/index.tsx` — собирает ряд Toolbar со слотом LocalePicker
+ *  - `src/pages/showcase/index.tsx` — собирает ряд иконок превью Toolbar
  */
 
 import {
@@ -167,6 +166,18 @@ function handleActionClick(
  */
 function isControlAction(action: IconButtonRowAction): action is { control: ReactNode } {
   return 'control' in action;
+}
+
+function resolveActionKey(action: IconButtonRowAction, index: number): string {
+  if (isControlAction(action)) {
+    return `control-${index}`;
+  }
+
+  if (action.title) {
+    return action.title;
+  }
+
+  return `action-${index}`;
 }
 
 /**
@@ -353,10 +364,6 @@ function resolveActionTabIndex(
  *   insetBlockStart={16}
  *   insetInlineEnd={16}
  * />
- * <IconButtonRow
- *   actions={[{ control: <LocalePicker appearance="icon" /> }]}
- *   rovingFocus
- * />
  */
 function IconButtonRow({
   actions,
@@ -484,7 +491,7 @@ function IconButtonRow({
     <StyledIconButtonRow {...rest}>
       {actions.map((action, index) =>
         isControlAction(action) ? (
-          <StyledIconButtonRowCell key={index}>
+          <StyledIconButtonRowCell key={resolveActionKey(action, index)}>
             <StyledIconButtonRowSlot
               ref={(element: HTMLDivElement | null) => {
                 itemRefs.current[index] = element;
@@ -509,7 +516,7 @@ function IconButtonRow({
             aria-label={action.ariaLabel}
             as="button"
             disabled={action.disabled}
-            key={index}
+            key={resolveActionKey(action, index)}
             padding={action.iconPadding}
             ref={(element: HTMLButtonElement | null) => {
               itemRefs.current[index] = element;

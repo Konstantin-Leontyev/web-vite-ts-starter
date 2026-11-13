@@ -1,26 +1,19 @@
 /**
  * Файл: `src/ui/a11y.ts`
- * Содержит общие хелперы доступности для контролов со сбросом значения
- * и составным именем триггера.
+ * Содержит общие хелперы доступности для составного имени триггера.
  * Определяет обязательное доступное имя чекбокса, переключателя и тумблера
  * через `ChildrenAccessibleName`.
  *
  * Основные задачи:
- * 1. Задать текст `aria-label` кнопки сброса по умолчанию через `DEFAULT_CLEAR_ARIA_LABEL`
- * 2. Предоставить функцию `resolveClearAriaLabel`
- * 3. Предоставить функцию `resolveAriaLabelledBy`
- * 4. Предоставить функцию `resolveTriggerAccessibleName`
- * 5. Типизировать обязательное доступное имя через `ChildrenAccessibleName`
+ * 1. Предоставить функцию `resolveAriaLabelledBy`
+ * 2. Предоставить функцию `resolveTriggerAccessibleName`
+ * 3. Типизировать обязательное доступное имя через `ChildrenAccessibleName`
  *
  * Потребители:
- *  - `@ui/input`, `@ui/listbox`, `@ui/range-input` — собирают `aria-label`
- *    кнопки сброса через `resolveClearAriaLabel`
  *  - `@ui/listbox`, `@ui/range-input` — собирают `aria-labelledby` триггера
  *    через `resolveAriaLabelledBy`
  *  - `@ui/listbox` вида `icon` — собирает `aria-label` триггера через
  *    `resolveTriggerAccessibleName`
- *  - `@ui/search-field`, `@ui/date-range-input` — собирают `aria-label` кнопки
- *    сброса через `resolveClearAriaLabel` с запасным текстом
  *  - Checkbox, RadioButton и Switch — требуют доступное имя через
  *    `ChildrenAccessibleName`:
  *     - `src/ui/checkbox/index.tsx`
@@ -29,37 +22,6 @@
  */
 
 import { type ReactNode } from 'react';
-
-/**
- * DEFAULT_CLEAR_ARIA_LABEL — задаёт текст `aria-label` кнопки сброса по умолчанию.
- * Используется, когда вызывающий код не передал `fallback`.
- */
-const DEFAULT_CLEAR_ARIA_LABEL = 'Clear';
-
-/**
- * resolveClearAriaLabel — возвращает `aria-label` кнопки сброса.
- *
- * Как работает:
- * 1. Обрезает краевые пробелы у `label`
- * 2. Без текста возвращает `fallback`
- * 3. Иначе собирает `DEFAULT_CLEAR_ARIA_LABEL` и текст без завершающего `:`
- *
- * @param label подпись контрола или фрагмент для `aria-label`
- * @param fallback запасной текст, когда подпись пустая
- * @returns текст для `aria-label`
- */
-export function resolveClearAriaLabel(
-  label: string | undefined,
-  fallback: string = DEFAULT_CLEAR_ARIA_LABEL
-): string {
-  const trimmed = label?.trim();
-
-  if (!trimmed) {
-    return fallback;
-  }
-
-  return `${DEFAULT_CLEAR_ARIA_LABEL} ${trimmed.replace(/:$/, '')}`;
-}
 
 /**
  * resolveAriaLabelledBy — возвращает значение `aria-labelledby` из переданных id.

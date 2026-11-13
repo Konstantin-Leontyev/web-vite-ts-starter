@@ -31,6 +31,11 @@
  *    `resolveSearchFieldIconProps`, отдельным пропом `iconTone` на поле
  *    не передаётся
  *  - плейсхолдер поля поиска через проп `searchPlaceholder`
+ *  - доступное имя поля поиска и кнопки, которая его открывает, через проп
+ *    `searchAriaLabel`. Без пропа — `Search`. Пустая строка остаётся этой фразой
+ *  - подсказку кнопки поиска через проп `searchTitle`. Без пропа — `Search`.
+ *    Пустая строка или пробелы атрибут `title` не ставят. Имя в `title` не
+ *    подставляется. При `showSearchField={false}` не собирается
  *  - форму поля поиска через проп `searchShape`. Без пропа берётся форма панели
  *  - рамку поля поиска через проп `showSearchFieldBorder`. Без пропа рамка включена
  *  - кнопку сброса поля поиска через проп `showSearchFieldClearButton`. Без пропа
@@ -46,7 +51,8 @@
  *  - доступное имя для скринридера через проп `ariaLabel`
  *
  * Основные задачи:
- * 1. Экспортировать компонент Toolbar и функцию `resolveToolbarFieldSize`
+ * 1. Экспортировать компонент Toolbar, функции `resolveToolbarActionRowInlineSizePx`
+ *    и `resolveToolbarFieldSize` и дефолт `DEFAULT_TOOLBAR_SEARCH_TITLE`
  * 2. Типизировать пропсы через `ToolbarProps`
  * 3. Выставлять `role="toolbar"` и `aria-label` из пропа `ariaLabel` и включать
  *    roving focus у ряда действий
@@ -61,6 +67,8 @@
  *    Пока ряд не сжат, флаг раскрытия выключен
  *
  * Потребители:
+ *  - `src/pages/showcase/showcase.styles.ts` — считает ширину ряда действий
+ *    через `resolveToolbarActionRowInlineSizePx`
  *  - `src/pages/showcase` — демонстрирует состояния в витрине
  */
 
@@ -118,11 +126,17 @@ import {
  *
  * @property onSearchChange — обработчик изменения текста поиска. При выключенном
  *   поиске не собирается. Витрина его не подключает
+ * @property searchAriaLabel — доступное имя поля поиска и кнопки, которая его открывает.
+ *   Без пропа — `Search`. Пустая строка остаётся этой фразой. При
+ *   `showSearchField={false}` не собирается
  * @property searchDisabled — включает недоступное состояние поля поиска
  * @property searchPlaceholder — плейсхолдер поля поиска. При `showSearchField={false}`
  *   не собирается
  * @property searchShape — форма поля поиска. Без пропа берётся форма панели
  * @property searchSize — размер поля. Без пропа берётся размер окон
+ * @property searchTitle — подсказка кнопки поиска. Без пропа — `Search`.
+ *   Пустая строка или пробелы атрибут `title` не ставят. Имя в `title` не
+ *   подставляется. При `showSearchField={false}` не собирается
  * @property shape — форма панели. Капсула `pill` только при `showSearchField: false`
  * @property showSearchField — включает поле поиска. Без пропа поле есть
  * @property showSearchFieldClearButton — включает кнопку сброса. Без пропа сброс есть
@@ -132,10 +146,12 @@ import {
 type ToolbarSearchProps =
   | ({
       onSearchChange?: (query: string) => void;
+      searchAriaLabel?: string;
       searchDisabled?: boolean;
       searchPlaceholder?: string;
       searchShape?: ShapePreset;
       searchSize?: SizePreset;
+      searchTitle?: string;
       shape?: Exclude<ShapePreset, 'pill'>;
       showSearchField?: true;
       showSearchFieldClearButton?: boolean;
@@ -145,6 +161,7 @@ type ToolbarSearchProps =
       ShowSearchFieldIconProps)
   | {
       onSearchChange?: never;
+      searchAriaLabel?: never;
       searchDisabled?: never;
       searchFieldBorderTone?: never;
       searchFieldIcon?: never;
@@ -154,6 +171,7 @@ type ToolbarSearchProps =
       searchPlaceholder?: never;
       searchShape?: never;
       searchSize?: never;
+      searchTitle?: never;
       shape?: ShapePreset;
       showSearchField: false;
       showSearchFieldBorder?: never;
@@ -182,9 +200,16 @@ type ToolbarProps = {
   >;
 
 /**
- * TOOLBAR_SEARCH_ARIA_LABEL — задаёт доступное имя поля поиска панели.
+ * DEFAULT_TOOLBAR_SEARCH_ARIA_LABEL — задаёт доступное имя поля поиска и кнопки поиска по умолчанию.
+ * Используется, когда вызывающий код не передал проп `searchAriaLabel`.
  */
-const TOOLBAR_SEARCH_ARIA_LABEL = 'Search';
+const DEFAULT_TOOLBAR_SEARCH_ARIA_LABEL = 'Search';
+
+/**
+ * DEFAULT_TOOLBAR_SEARCH_TITLE — задаёт подсказку кнопки поиска по умолчанию.
+ * Используется, когда вызывающий код не передал проп `searchTitle`.
+ */
+const DEFAULT_TOOLBAR_SEARCH_TITLE = 'Search';
 
 /**
  * TOOLBAR_SEARCH_ROW_INDEX — задаёт индекс иконки поиска в ряду действий.
@@ -222,7 +247,7 @@ type ToolbarSearchActionProps = {
   size?: IconSizePreset;
 } & Pick<
   ComponentPropsWithRef<'button'>,
-  'aria-controls' | 'aria-expanded' | 'aria-label' | 'ref'
+  'aria-controls' | 'aria-expanded' | 'aria-label' | 'ref' | 'title'
 >;
 
 /**
@@ -304,6 +329,7 @@ function ToolbarSearchAction({
   showBorder,
   showShadow,
   size,
+  title,
 }: ToolbarSearchActionProps) {
   const borderProps = resolveBorderProps(Boolean(showBorder), undefined, showShadow);
 
@@ -318,6 +344,7 @@ function ToolbarSearchAction({
         ref={ref}
         shape={iconShape}
         size={size}
+        title={title}
         onClick={onClick}
         {...borderProps}
       >
@@ -341,6 +368,7 @@ function Toolbar({
   ariaLabel,
   onSearchChange,
   ref,
+  searchAriaLabel,
   searchDisabled = false,
   searchFieldBorderTone,
   searchFieldIcon,
@@ -350,6 +378,7 @@ function Toolbar({
   searchPlaceholder,
   searchShape,
   searchSize,
+  searchTitle = DEFAULT_TOOLBAR_SEARCH_TITLE,
   shape,
   showActionBorder,
   showActionShadow,
@@ -367,6 +396,7 @@ function Toolbar({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [parentInlineSize, setParentInlineSize] = useState<null | number>(null);
   const [query, setQuery] = useState('');
+  const parentInlineSizeRef = useRef<null | number>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const searchActionRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -402,8 +432,14 @@ function Toolbar({
 
       const next = resolveResizeObserverContentInlineSizePx(entry);
 
+      if (parentInlineSizeRef.current === next) {
+        return;
+      }
+
+      parentInlineSizeRef.current = next;
+
       flushSync(() => {
-        setParentInlineSize((current) => (current === next ? current : next));
+        setParentInlineSize(next);
       });
     });
 
@@ -459,6 +495,10 @@ function Toolbar({
     setIsSearchOpen(true);
   }
 
+  const searchName =
+    searchAriaLabel !== undefined && searchAriaLabel.trim() !== ''
+      ? searchAriaLabel
+      : DEFAULT_TOOLBAR_SEARCH_ARIA_LABEL;
   const actionShape = resolveIconShape(shape);
   const iconSize = size ?? DEFAULT_SIZE_PRESET;
   const searchAction: IconButtonRowAction = {
@@ -467,9 +507,10 @@ function Toolbar({
         active={isSearchOpen}
         aria-controls={searchFieldId}
         aria-expanded={isSearchOpen}
-        aria-label={TOOLBAR_SEARCH_ARIA_LABEL}
+        aria-label={searchName}
         iconShape={actionShape}
         ref={searchActionRef}
+        title={searchTitle.trim() === '' ? undefined : searchTitle}
         onClick={handleSearchToggle}
       />
     ),
@@ -560,7 +601,7 @@ function Toolbar({
         >
           <StyledToolbarSearchClip visible={isSearchFieldVisible}>
             <SearchField
-              aria-label={TOOLBAR_SEARCH_ARIA_LABEL}
+              aria-label={searchName}
               disabled={searchDisabled}
               iconFill={showSearchFieldIcon ? searchFieldIconFill : undefined}
               id={searchFieldId}
@@ -589,5 +630,10 @@ function Toolbar({
   );
 }
 
-/* eslint-disable react-refresh/only-export-components -- размер поля поиска для витрины */
-export { Toolbar, resolveToolbarFieldSize };
+/* eslint-disable react-refresh/only-export-components -- хелперы витрины */
+export {
+  DEFAULT_TOOLBAR_SEARCH_TITLE,
+  Toolbar,
+  resolveToolbarActionRowInlineSizePx,
+  resolveToolbarFieldSize,
+};

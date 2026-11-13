@@ -16,8 +16,8 @@
  *  - кнопку сброса через проп `showClearButton`. Дефолт — сброс есть. Кнопка
  *    появляется при непустом значении
  *  - обработчик сброса через проп `onClear`
- *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа имя —
- *    `resolveClearAriaLabel`
+ *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа —
+ *    `Clear input`. Пустая строка остаётся этой фразой
  *  - подпись над полем через проп `label`
  *  - встроенную строку ошибки через проп `error`
  *  - серую подсказку в полоске ошибки через проп `errorPlaceholder`
@@ -45,7 +45,6 @@ import {
   type ComponentPropsWithRef,
 } from 'react';
 
-import { resolveClearAriaLabel } from '@ui/a11y';
 import { FieldClear, type ClearProps } from '@ui/field-clear';
 import { FieldError } from '@ui/field-error';
 import { FieldLabel } from '@ui/field-label';
@@ -70,6 +69,12 @@ const DEFAULT_INPUT_INVALID = false;
  * Используется, когда вызывающий код не передал проп `showClearButton`.
  */
 const DEFAULT_INPUT_SHOW_CLEAR_BUTTON = true;
+
+/**
+ * DEFAULT_INPUT_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса поля по умолчанию.
+ * Используется, когда вызывающий код не передал проп `clearAriaLabel`.
+ */
+const DEFAULT_INPUT_CLEAR_ARIA_LABEL = 'Clear input';
 
 /**
  * InputValueProps — представляет пропсы контролируемого значения Input.
@@ -210,7 +215,11 @@ export function Input({
         />
         {hasClear && (
           <FieldClear
-            ariaLabel={clearAriaLabel ?? resolveClearAriaLabel(label)}
+            ariaLabel={
+              clearAriaLabel !== undefined && clearAriaLabel.trim() !== ''
+                ? clearAriaLabel
+                : DEFAULT_INPUT_CLEAR_ARIA_LABEL
+            }
             disabled={disabled}
             invalid={isInvalid}
             size={size}

@@ -26,8 +26,8 @@
  *  - подпись над триггером через проп `label`
  *  - обработчик изменения значения через проп `onChange`
  *  - обработчик сброса значения через проп `onClear`
- *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа имя —
- *    `resolveClearAriaLabel`
+ *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа —
+ *    `Clear range`. Пустая строка остаётся этой фразой
  *  - плейсхолдер неактивного триггера через проп `placeholder`
  *  - пресеты диапазона через проп `presets`
  *  - серую подсказку в полоске ошибки панели через проп `errorPlaceholder`.
@@ -39,6 +39,8 @@
  *  - курсив заголовка панели через проп `titleItalic`
  *  - выравнивание заголовка панели через проп `titleAlign`
  *  - уровень заголовка панели через проп `titleLevel`
+ *  - доступное имя диалога панели без заголовка через проп `panelAriaLabel`.
+ *    Без пропа — `Custom range`. Пустая строка остаётся этой фразой
  *  - плейсхолдер поля `to` через проп `toPlaceholder`
  *  - обработчик пользовательской валидации через проп `validate`
  *  - тексты встроенной валидации через проп `validationMessages`
@@ -113,9 +115,9 @@ import {
  * Используется, когда вызывающий код не передал проп `validationMessages`.
  */
 export const DEFAULT_RANGE_INPUT_VALIDATION_MESSAGES = {
-  emptyBounds: 'Enter at least one bound.',
-  invalidFrom: 'From must be a whole number.',
-  invalidTo: 'To must be a whole number.',
+  emptyBounds: 'Enter at least one bound',
+  invalidFrom: 'From must be a whole number',
+  invalidTo: 'To must be a whole number',
 } as const;
 
 /**
@@ -169,9 +171,8 @@ export const DEFAULT_RANGE_INPUT_TO_PLACEHOLDER = 'To';
 /**
  * DEFAULT_RANGE_INPUT_ERROR_PLACEHOLDER — задаёт серую подсказку полоски ошибки по умолчанию.
  * Используется, когда вызывающий код не передал проп `errorPlaceholder`.
- * Закрывает пустой резерв высоты, пока ошибки нет.
  */
-export const DEFAULT_RANGE_INPUT_ERROR_PLACEHOLDER = 'Enter a range and apply.';
+export const DEFAULT_RANGE_INPUT_ERROR_PLACEHOLDER = 'Enter a range and apply';
 
 /**
  * RangeInputValidationMessages — представляет частичные тексты встроенной валидации RangeInput.
@@ -258,16 +259,23 @@ type RangeInputInputProps = {
 };
 
 /**
- * RANGE_INPUT_PANEL_ARIA_LABEL — задаёт текст `aria-label` диалога панели RangeInput.
- * Используется для статичного доступного имени панели без собственного титула.
+ * DEFAULT_RANGE_INPUT_PANEL_ARIA_LABEL — задаёт доступное имя диалога панели по умолчанию.
+ * Используется, когда вызывающий код не передал проп `panelAriaLabel`.
  */
-const RANGE_INPUT_PANEL_ARIA_LABEL = 'Custom range';
+const DEFAULT_RANGE_INPUT_PANEL_ARIA_LABEL = 'Custom range';
+
+/**
+ * DEFAULT_RANGE_INPUT_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса диапазона по умолчанию.
+ * Используется, когда вызывающий код не передал проп `clearAriaLabel`.
+ */
+const DEFAULT_RANGE_INPUT_CLEAR_ARIA_LABEL = 'Clear range';
 
 /**
  * RangeInputClearProps — представляет пропсы кнопки сброса RangeInput.
  * Имя сброса допустимо только вместе с обработчиком сброса.
  *
- * @property clearAriaLabel — доступное имя кнопки сброса
+ * @property clearAriaLabel — доступное имя кнопки сброса. Без пропа — `Clear range`.
+ *   Пустая строка остаётся этой фразой
  * @property onClear — обработчик сброса значения. Без обработчика кнопка сброса не показывается
  */
 export type RangeInputClearProps =
@@ -293,6 +301,8 @@ export type RangeInputClearProps =
  * @property iconPosition — позиция шеврона и кнопки сброса относительно значения
  * @property label — подпись над триггером
  * @property onChange — обработчик изменения значения
+ * @property panelAriaLabel — доступное имя диалога панели без заголовка. Без пропа —
+ *   `Custom range`. Пустая строка остаётся этой фразой
  * @property placeholder — плейсхолдер неактивного триггера
  * @property presets — пресеты диапазона в панели
  * @property reserveErrorSpace — включает резерв высоты под строку ошибки
@@ -315,6 +325,7 @@ type RangeInputProps = RangeInputStyleProps &
     iconPosition?: IconPosition;
     label?: string;
     onChange: (value: RangeValue) => void;
+    panelAriaLabel?: string;
     placeholder?: string;
     presets?: RangePreset[];
     reserveErrorSpace?: boolean;
@@ -448,6 +459,7 @@ export function RangeInput({
   label,
   onChange,
   onClear,
+  panelAriaLabel,
   placeholder = DEFAULT_RANGE_INPUT_PLACEHOLDER,
   presets,
   reserveErrorSpace = DEFAULT_RANGE_INPUT_RESERVE_ERROR_SPACE,
@@ -682,11 +694,14 @@ export function RangeInput({
 
   const clearNode = showClear && (
     <OpenControlClear
-      clearAriaLabel={clearAriaLabel}
+      clearAriaLabel={
+        clearAriaLabel !== undefined && clearAriaLabel.trim() !== ''
+          ? clearAriaLabel
+          : DEFAULT_RANGE_INPUT_CLEAR_ARIA_LABEL
+      }
       disabled={disabled}
       iconFill={iconFill}
       iconTone={iconTone}
-      label={label}
       shape={iconShape}
       size={size}
       onClick={handleClear}
@@ -746,7 +761,13 @@ export function RangeInput({
         onOpenFocus={focusRangeInputFromField}
       >
         <StyledRangeInputPanel
-          aria-label={hasTitle ? undefined : RANGE_INPUT_PANEL_ARIA_LABEL}
+          aria-label={
+            hasTitle
+              ? undefined
+              : panelAriaLabel !== undefined && panelAriaLabel.trim() !== ''
+                ? panelAriaLabel
+                : DEFAULT_RANGE_INPUT_PANEL_ARIA_LABEL
+          }
           aria-labelledby={panelTitleId}
           aria-modal={true}
           id={panelId}

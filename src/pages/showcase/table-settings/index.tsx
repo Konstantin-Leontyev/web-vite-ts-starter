@@ -16,7 +16,11 @@ import { type ChangeEvent } from 'react';
 
 import { Checkbox } from '@ui/checkbox';
 import { SIZE_PRESET_KEYS, type SizePreset } from '@ui/presets';
-import { DEFAULT_ADD_HINT, DEFAULT_EDIT_HINT } from '@ui/table';
+import {
+  DEFAULT_ADD_HINT,
+  DEFAULT_EDIT_HINT,
+  DEFAULT_TABLE_EDIT_LABEL,
+} from '@ui/table';
 
 import { StyledSettingsForm } from '../showcase.styles';
 import { SizeListbox } from '../size-listbox';
@@ -36,6 +40,7 @@ import { TextGroup } from '../text-group';
  *   нумерация сбрасывается в каждой группе
  * @property editable — включает добавление и редактирование строк
  * @property editHint — подсказка в полоске ошибки панели редактирования, пока нет ошибки
+ * @property editLabel — видимый текст кнопки правки строки
  * @property hoverHighlight — включает подсветку строки при наведении
  * @property showBorder — включает рамку вокруг таблицы
  * @property showIndexColumn — витринный ключ показа колонки нумерации каталога. Выключенный —
@@ -49,6 +54,7 @@ export type TableWidgetState = {
   continuousNumbering: boolean;
   editable: boolean;
   editHint: string;
+  editLabel: string;
   hoverHighlight: boolean;
   showBorder: boolean;
   showIndexColumn: boolean;
@@ -153,6 +159,17 @@ export function TableSettings({ onChange, state }: TableSettingsProps) {
 
       {state.editable && (
         <>
+          <TextGroup
+            contents={[
+              {
+                boxedString: DEFAULT_TABLE_EDIT_LABEL,
+                value: state.editLabel,
+                onChange: (value) => onChange('editLabel', value),
+              },
+            ]}
+            labelPrefix="Edit text"
+          />
+
           <TextGroup
             contents={[
               {

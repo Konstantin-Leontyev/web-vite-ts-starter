@@ -27,8 +27,8 @@
  *  - кнопку сброса через проп `showClearButton`. Дефолт — сброс есть. Кнопка
  *    появляется при непустом значении
  *  - обработчик сброса значения через проп `onClear`
- *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа имя —
- *    `resolveClearAriaLabel`
+ *  - доступное имя кнопки сброса через проп `clearAriaLabel`. Без пропа —
+ *    `Clear search`. Пустая строка остаётся этой фразой
  *
  * Основные задачи:
  * 1. Экспортировать компонент SearchField
@@ -37,10 +37,12 @@
  *    `resolveSearchFieldIconProps`
  * 4. Экспортировать пакеты `ShowSearchFieldBorderProps` и `ShowSearchFieldIconProps`
  *    и функции `resolveSearchFieldBorderProps` и `resolveShowSearchFieldIconProps`
- * 5. Экспортировать дефолт `DEFAULT_SEARCH_FIELD_PLACEHOLDER`
+ * 5. Экспортировать дефолты `DEFAULT_SEARCH_FIELD_ICON_POSITION`,
+ *    `DEFAULT_SEARCH_FIELD_PLACEHOLDER`, `DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON`
+ *    и `DEFAULT_SEARCH_FIELD_SHOW_OUTLINE`
  * 6. Связывать подпись и поле для доступности
- * 7. Выставлять `aria-label` кнопки сброса через `clearAriaLabel` или
- *    `resolveClearAriaLabel`
+ * 7. Выставлять `aria-label` кнопки сброса через `clearAriaLabel`. Без пропа —
+ *    `Clear search`. Пустая строка остаётся этой фразой
  *
  * Потребители:
  *  - `@ui/listbox` — рендерит поле поиска в панели и подключает пакеты рамки и иконки
@@ -59,7 +61,6 @@ import {
 } from 'react';
 
 import { SearchIcon } from '@icons';
-import { resolveClearAriaLabel } from '@ui/a11y';
 import { FieldClear, type ClearProps } from '@ui/field-clear';
 import { FieldLabel } from '@ui/field-label';
 import { Icon, resolveIconShape, type IconPosition } from '@ui/icon';
@@ -67,6 +68,7 @@ import { assignRef } from '@ui/ref';
 import { type TonePreset } from '@ui/tones';
 
 import {
+  DEFAULT_SEARCH_FIELD_SHOW_OUTLINE,
   StyledSearchFieldControl,
   StyledSearchFieldRoot,
   StyledSearchFieldRow,
@@ -84,7 +86,7 @@ const DEFAULT_SEARCH_FIELD_ICON = <SearchIcon />;
  * DEFAULT_SEARCH_FIELD_ICON_POSITION — задаёт позицию иконки по умолчанию.
  * Используется, когда вызывающий код не передал проп `iconPosition`.
  */
-const DEFAULT_SEARCH_FIELD_ICON_POSITION: IconPosition = 'start';
+export const DEFAULT_SEARCH_FIELD_ICON_POSITION: IconPosition = 'start';
 
 /**
  * DEFAULT_SEARCH_FIELD_PLACEHOLDER — задаёт плейсхолдер поля поиска по умолчанию.
@@ -102,13 +104,13 @@ const DEFAULT_SEARCH_FIELD_SHOW_ICON = true;
  * DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON — задаёт режим показа кнопки сброса по умолчанию.
  * Используется, когда вызывающий код не передал проп `showClearButton`.
  */
-const DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON = true;
+export const DEFAULT_SEARCH_FIELD_SHOW_CLEAR_BUTTON = true;
 
 /**
- * CLEAR_SEARCH_ARIA_LABEL — задаёт запасной `aria-label` кнопки сброса поиска.
- * Передаётся вторым аргументом в `resolveClearAriaLabel`, когда подпись пуста.
+ * DEFAULT_SEARCH_FIELD_CLEAR_ARIA_LABEL — задаёт доступное имя кнопки сброса поиска по умолчанию.
+ * Используется, когда вызывающий код не передал проп `clearAriaLabel`.
  */
-const CLEAR_SEARCH_ARIA_LABEL = 'Clear search';
+const DEFAULT_SEARCH_FIELD_CLEAR_ARIA_LABEL = 'Clear search';
 
 /**
  * ShowSearchFieldBorderProps — представляет пропсы рамки вложенного поля поиска.
@@ -379,7 +381,11 @@ function SearchField({
 
   const clearNode = hasClear && (
     <FieldClear
-      ariaLabel={clearAriaLabel ?? resolveClearAriaLabel(label, CLEAR_SEARCH_ARIA_LABEL)}
+      ariaLabel={
+        clearAriaLabel !== undefined && clearAriaLabel.trim() !== ''
+          ? clearAriaLabel
+          : DEFAULT_SEARCH_FIELD_CLEAR_ARIA_LABEL
+      }
       disabled={disabled}
       size={size}
       onClick={handleClear}
@@ -425,6 +431,7 @@ function SearchField({
 
 /* eslint-disable react-refresh/only-export-components -- пакеты рамки и иконки вложенного поиска для Listbox и Toolbar */
 export {
+  DEFAULT_SEARCH_FIELD_SHOW_OUTLINE,
   SearchField,
   resolveSearchFieldBorderProps,
   resolveSearchFieldIconProps,

@@ -5,12 +5,14 @@
  * Основные задачи:
  * 1. Типизировать пропсы через `SearchFieldStyleProps`, `SearchFieldRowStyleProps`
  *    и `SearchFieldControlStyleProps`
- * 2. Предоставить styled-узлы `StyledSearchFieldRoot`, `StyledSearchFieldRow`
+ * 2. Предоставить дефолт `DEFAULT_SEARCH_FIELD_SHOW_OUTLINE`
+ * 3. Предоставить styled-узлы `StyledSearchFieldRoot`, `StyledSearchFieldRow`
  *    и `StyledSearchFieldControl`
- * 3. Реэкспортировать `splitLayoutProps` для сборки в `index.tsx`
+ * 4. Реэкспортировать `splitLayoutProps` для сборки в `index.tsx`
  *
  * Потребители:
  *  - `src/ui/search-field/index.tsx` — собирает компонент SearchField
+ *    и реэкспортирует публичное API
  */
 
 import styled from 'styled-components';
@@ -112,7 +114,7 @@ const DEFAULT_SEARCH_FIELD_TINTED = false;
  * DEFAULT_SEARCH_FIELD_SHOW_OUTLINE — задаёт режим обводки фокуса по умолчанию.
  * Используется, когда вызывающий код не передал проп `showOutline`.
  */
-const DEFAULT_SEARCH_FIELD_SHOW_OUTLINE = true;
+export const DEFAULT_SEARCH_FIELD_SHOW_OUTLINE = true;
 
 /**
  * getSearchFieldRowStyles — возвращает CSS-правила для узла `StyledSearchFieldRow`:

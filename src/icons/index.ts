@@ -6,7 +6,7 @@
  * 1. Реэкспортировать компоненты иконок набора
  *
  * Потребители:
- *  - страницы, виджеты и контролы приложения, например Header, Sidebar и SidePanelApp —
+ *  - страницы, виджеты и контролы приложения, например Header и Sidebar —
  *    импортируют иконки через `@icons`
  *  - `src/pages/showcase/showcase-icon-options.tsx` — собирает опции витрины
  */
@@ -38,5 +38,8 @@ export { SearchIcon } from './search';
 export { SettingsIcon } from './settings';
 export { SidebarIcon } from './sidebar';
 export { SignOutIcon } from './sign-out';
+export { StarFilledIcon } from './star-filled';
+export { StarIcon } from './star';
 export { SubtitlesIcon } from './subtitles';
 export { UploadIcon } from './upload';
+export { VoiceChannelIcon } from './voice-channel';
